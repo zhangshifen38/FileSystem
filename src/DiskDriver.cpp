@@ -42,7 +42,7 @@ bool DiskDriver::close() {
     return true;
 }
 
-bool DiskDriver::init(unsigned long long int sz) {
+bool DiskDriver::init(uint32_t sz) {
     if (isOpen) {
         return false;
     }
@@ -54,19 +54,19 @@ bool DiskDriver::init(unsigned long long int sz) {
     return true;
 }
 
-void DiskDriver::seekStart(unsigned long long int sz) {
+void DiskDriver::seekStart(uint32_t sz) {
     disk.seekg(sz,std::ios::beg);
 }
 
-void DiskDriver::seekCurrent(unsigned long long int sz) {
+void DiskDriver::seekCurrent(uint32_t sz) {
     disk.seekg(sz,std::ios::cur);
 }
 
-void DiskDriver::read(char *buf, size_t sz) {
+void DiskDriver::read(char *buf, uint32_t sz) {
     disk.read(buf,sz);
 }
 
-void DiskDriver::write(char *buf, size_t sz) {
+void DiskDriver::write(char *buf, uint32_t sz) {
     disk.write(buf,sz);
 }
 

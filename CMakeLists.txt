@@ -3,4 +3,4 @@ project(FileSystem)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(FileSystem main.cpp src/entity/DiskDriver.cpp src/entity/DiskDriver.h)
+add_executable(FileSystem main.cpp src/DiskDriver.cpp src/DiskDriver.h src/entity/DiskINode.cpp src/entity/DiskINode.h src/FileSystem.cpp src/FileSystem.h src/UserInterface.cpp src/UserInterface.h src/Shell.cpp src/Shell.h src/Constraints.h src/entity/Directory.cpp src/entity/Directory.h)
