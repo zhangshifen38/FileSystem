@@ -48,8 +48,8 @@ bool DiskDriver::init(uint32_t sz) {
     }
     std::ofstream c(diskName, std::ios::binary | std::ios::out);
     c.write(reinterpret_cast<char *>(&sz), sizeof(sz));
-    char ok=-1;     //未格式化标记
-    c.write(&ok,sizeof(ok));
+    int8_t ok=-1;     //未格式化标记
+    c.write(reinterpret_cast<char *>(&ok),sizeof(ok));
     c.close();
     return true;
 }
@@ -68,6 +68,17 @@ void DiskDriver::read(char *buf, uint32_t sz) {
 
 void DiskDriver::write(char *buf, uint32_t sz) {
     disk.write(buf,sz);
+}
+
+DiskDriver::~DiskDriver() {
+    if(isOpen){
+        disk.close();
+    }
+}
+
+void DiskDriver::revokeInstance() {
+    delete instance;
+    instance= nullptr;
 }
 
 
