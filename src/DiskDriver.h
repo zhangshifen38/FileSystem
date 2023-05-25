@@ -16,22 +16,22 @@
  */
 class DiskDriver {
 public:
-    static DiskDriver *instance;
-    static DiskDriver* getInstance();   //为了防止冲突，使用单例获取虚拟磁盘对象
-    bool open();                        //打开虚拟磁盘文件，返回是否打开成功
-    bool close();                       //关闭虚拟磁盘文件，返回是否关闭
-    bool init(uint32_t sz);             //创建未格式化的指定容量的虚拟磁盘文件
-    void seekStart(uint32_t sz);        //将读写头移动到距起始sz字节处
-    void seekCurrent(uint32_t sz);      //将读写头移动到距当前位置sz字节处
-    void read(char* buf, uint32_t sz);  //从当前位置读出sz字节到buf缓冲区
-    void write(char* buf, uint32_t sz); //从当前位置将sz字节写入文件
-
+    static DiskDriver* getInstance();       //为了防止冲突，使用单例获取虚拟磁盘对象
+    static void revokeInstance();           //销毁单例
+    bool open();                            //打开虚拟磁盘文件，返回是否打开成功
+    bool close();                           //关闭虚拟磁盘文件，返回是否关闭
+    bool init(uint32_t sz);                 //创建未格式化的指定容量的虚拟磁盘文件
+    void seekStart(uint32_t sz);            //将读写头移动到距起始sz字节处
+    void seekCurrent(uint32_t sz);          //将读写头移动到距当前位置sz字节处
+    void read(char* buf, uint32_t sz);      //从当前位置读出sz字节到buf缓冲区
+    void write(char* buf, uint32_t sz);     //从当前位置将sz字节写入文件
+    ~DiskDriver();
 private:
+    static DiskDriver *instance;
     static std::string diskName;        //虚拟磁盘文件名
     std::fstream disk;                  //C++文件对象模拟磁盘，同时起到读写头的作用
     bool isOpen;                        //磁盘是否打开标记
     DiskDriver();
-
 };
 
 
