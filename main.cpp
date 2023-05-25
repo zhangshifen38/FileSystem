@@ -1,6 +1,7 @@
 #include <iostream>
+#include "src/Shell.h"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    Shell test;
     return 0;
 }
