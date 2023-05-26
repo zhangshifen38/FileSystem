@@ -26,9 +26,7 @@ bool FileSystem::format(uint16_t bsize) {
     if (!isOpen) {
         return false;
     }
-//    disk->seekStart(sizeof(capasity));
-//    disk->read(reinterpret_cast<char *>(&isUnformatted),sizeof isUnformatted);
-//    std::cout<<(int)isUnformatted<<std::endl;
+
     disk->seekStart(sizeof(capasity));
     isUnformatted = 0;
     disk->write(reinterpret_cast<char *>(&isUnformatted), sizeof isUnformatted);
@@ -85,14 +83,31 @@ void FileSystem::blockFree(uint16_t bno) {
 
 }
 
-void FileSystem::read(uint16_t bno, uint8_t offset, char *buf, uint8_t sz) {
-
+void FileSystem::read(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
+    uint32_t base = bno * blockSize;
+    disk->seekStart(base+offset);
+    disk->read(buf,sz);
 }
 
-void FileSystem::write(uint16_t bno, uint8_t offset, char *buf, uint8_t sz) {
-
+void FileSystem::write(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
+    uint32_t base = bno * blockSize;
+    disk->seekStart(base+offset);
+    disk->write(buf,sz);
 }
 
 bool FileSystem::createDisk(uint32_t sz) {
     return disk->init(sz);
+}
+
+void FileSystem::readNext(char *buf, uint16_t sz) {
+    disk->read(buf,sz);
+}
+
+void FileSystem::writeNext(char *buf, uint16_t sz) {
+    disk->write(buf,sz);
+}
+
+void FileSystem::locale(uint32_t bno, uint16_t offset) {
+    uint32_t base = bno * blockSize;
+    disk->seekStart(base+offset);
 }
