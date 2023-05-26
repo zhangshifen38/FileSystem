@@ -19,7 +19,7 @@ private:
 public:
     Shell();
     //界面主程序
-    [[noreturn]] void running_shell();
+    void running_shell();
     //cd命令处理程序
     void cmd_cd();
     //ls命令处理程序

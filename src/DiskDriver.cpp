@@ -47,6 +47,12 @@ bool DiskDriver::init(uint32_t sz) {
         return false;
     }
     std::ofstream c(diskName, std::ios::binary | std::ios::out);
+    //填充虚拟磁盘
+    c.seekp(0,std::ios::beg);
+    for(uint32_t i=0;i<sz;++i){
+        c.write("",1);
+    }
+    c.seekp(0,std::ios::beg);
     c.write(reinterpret_cast<char *>(&sz), sizeof(sz));
     int8_t ok=-1;     //未格式化标记
     c.write(reinterpret_cast<char *>(&ok),sizeof(ok));

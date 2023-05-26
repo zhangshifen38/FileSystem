@@ -20,7 +20,7 @@ public:
     static void revokeInstance();           //销毁单例
     bool open();                            //打开虚拟磁盘文件，返回是否打开成功
     bool close();                           //关闭虚拟磁盘文件，返回是否关闭
-    bool init(uint32_t sz);                 //创建未格式化的指定容量的虚拟磁盘文件
+    bool init(uint32_t sz);                 //创建未格式化的指定容量的虚拟磁盘文件，单位为Byte
     void seekStart(uint32_t sz);            //将读写头移动到距起始sz字节处
     void seekCurrent(uint32_t sz);          //将读写头移动到距当前位置sz字节处
     void read(char* buf, uint32_t sz);      //从当前位置读出sz字节到buf缓冲区

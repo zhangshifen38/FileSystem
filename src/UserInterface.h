@@ -9,6 +9,9 @@
  * @brief 为用户提供的接口，支持用户常用的功能
  */
 class UserInterface {
+public:
+
+private:
 
 };
 

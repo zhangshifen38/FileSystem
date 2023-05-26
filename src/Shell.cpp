@@ -55,7 +55,7 @@ void Shell::setUser(const std::string &user) {
 }
 
 Shell::Shell() {
-    running_shell();
+    //running_shell();
 }
 
 void Shell::outPutPrefix() {
