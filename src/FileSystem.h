@@ -7,8 +7,10 @@
 
 #include <iostream>
 #include <cstdint>
+#include <cstring>
 #include "DiskDriver.h"
 #include "./entity/FileSystemInfo.h"
+#include "./entity/INode.h"
 #include "./entity/Directory.h"
 #include "./entity/FreeBlockStack.h"
 

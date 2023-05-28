@@ -50,13 +50,13 @@ bool FileSystem::format(uint16_t bsize) {
     }
 
     systemInfo.rootLocation = blockStackSize + 1;       //根目录位于空闲块栈底的下一个块
-    systemInfo.avaliableCapasity = blockSize * (totalBlock - blockStackSize - 2);       //初始可用块个数=总容量-栈大小-引导超级块-根目录
-    systemInfo.freeBlockNumber = totalBlock - blockStackSize - 2;       //空闲块个数=总块数-空闲块栈大小-引导块-根目录项
+    systemInfo.avaliableCapasity = blockSize * (totalBlock - blockStackSize - 3);       //初始可用块个数=总容量-栈大小-引导超级块-根目录i节点-根目录项
+    systemInfo.freeBlockNumber = totalBlock - blockStackSize - 3;       //空闲块个数=总块数-空闲块栈大小-引导块-根目录项
 
     //初始化磁盘中的空闲块栈，并登记栈顶所在块与偏移
     uint32_t ptr = (blockStackSize + 1) * blockSize;
     std::cout<<ptr<<std::endl;
-    for (uint32_t b = totalBlock - 1; b >= blockStackSize + 2; --b) {
+    for (uint32_t b = totalBlock - 1; b >= blockStackSize + 3; --b) {
         ptr -= sizeof(uint32_t);
         disk->seekStart(ptr);
         disk->write(reinterpret_cast<char *>(&b), sizeof b);
@@ -87,11 +87,17 @@ bool FileSystem::format(uint16_t bsize) {
     disk->read(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
     stack->setStackTop(systemInfo.freeBlockStackOffset);
 
+    INode rootINode;
     Directory dir;
-    dir.item[0].inodeIndex = 0;
+    rootINode.uid=0;    //0表示系统
+    rootINode.bno=systemInfo.rootLocation+1;
+    rootINode.flag=0x7f;         //01111111，目录，所有用户都有rwx权限
+    dir.item[0].inodeIndex = systemInfo.rootLocation;
+    strcpy(dir.item[0].name,".");       //当前目录指向自己
     disk->seekStart(systemInfo.rootLocation * blockSize);
+    disk->write(reinterpret_cast<char *>(&rootINode), sizeof rootINode);
+    disk->seekStart(rootINode.bno*blockSize);
     disk->write(reinterpret_cast<char *>(&dir), sizeof dir);
-    disk->seekStart(0);
     return true;
 }
 
