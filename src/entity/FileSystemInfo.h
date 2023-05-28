@@ -12,9 +12,11 @@
  */
 class FileSystemInfo {
 public:
-    uint32_t freeBlockStackTop;         //空闲块栈的栈顶（栈底根据块大小和磁盘大小可以计算）
-    uint32_t freeBlockNumber;           //空闲块个数
     uint32_t rootLocation;              //根目录所在磁盘块
+
+    uint32_t freeBlockNumber;           //空闲块个数
+    uint32_t freeBlockStackTop;         //空闲块栈的栈顶（栈底根据块大小和磁盘大小可以计算）
+    uint16_t freeBlockStackOffset;      //空闲块栈栈顶指针所在的块内偏移
 
     uint32_t avaliableCapasity;         //磁盘可用容量
 
