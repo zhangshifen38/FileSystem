@@ -13,6 +13,7 @@
 class Directory {
 public:
     DirectoryItem item[BLOCK_SIZE/DIRECTORY_ITEM_SIZE];     // 32768 / 128 = 256
+    //从头开始遍历第一个inodeindex==0的项为空闲目录项
 };
 
 
