@@ -40,6 +40,7 @@ bool FileSystem::format(uint16_t bsize) {
     disk->write(reinterpret_cast<char *>(&isUnformatted), sizeof isUnformatted);
     blockSize = bsize;
     disk->write(reinterpret_cast<char *>(&blockSize), sizeof blockSize);
+    // (char*)(&var)
     systemInfo.flag = 0;
 
     systemInfo.freeBlockStackTop = 1;                 //空闲块栈顶初始位于磁盘块1
@@ -94,6 +95,7 @@ bool FileSystem::format(uint16_t bsize) {
     rootINode.flag=0x7f;         //01111111，目录，所有用户都有rwx权限
     dir.item[0].inodeIndex = systemInfo.rootLocation;
     strcpy(dir.item[0].name,".");       //当前目录指向自己
+    dir.item[1].inodeIndex = 0;
     disk->seekStart(systemInfo.rootLocation * blockSize);
     disk->write(reinterpret_cast<char *>(&rootINode), sizeof rootINode);
     disk->seekStart(rootINode.bno*blockSize);
@@ -200,4 +202,8 @@ void FileSystem::update() {
         disk->seekStart(systemInfo.freeBlockStackTop*blockSize);
         disk->write(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
     }
+}
+
+uint32_t FileSystem::getRootLocation() {
+    return systemInfo.rootLocation;
 }
