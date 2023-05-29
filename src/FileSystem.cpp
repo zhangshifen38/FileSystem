@@ -168,7 +168,8 @@ void FileSystem::write(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
 }
 
 bool FileSystem::createDisk(uint32_t sz) {
-    return disk->init(sz);
+    bool ok = disk->init(sz);
+    return ok;
 }
 
 void FileSystem::readNext(char *buf, uint16_t sz) {

@@ -68,6 +68,7 @@ void UserInterface::initialize() {
             std::cin >> disk_size;
             fileSystem->createDisk(disk_size * 1024 * 1024);
             std::cout << "disk create success!" << std::endl;
+            fileSystem->mount();
             fileSystem->format(BLOCK_SIZE / 8);
         }
         std::cout << "format success!" << std::endl;
