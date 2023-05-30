@@ -14,7 +14,7 @@ FileSystem::FileSystem() {
 
 FileSystem::~FileSystem() {
     if (systemInfo.flag) {
-        disk->seekStart(sizeof capasity + sizeof isUnformatted + sizeof blockSize);
+        disk->seekStart(sizeof capacity + sizeof isUnformatted + sizeof blockSize);
         systemInfo.flag = 0;
         disk->write(reinterpret_cast<char *>(&systemInfo), sizeof systemInfo);
     }
@@ -35,7 +35,7 @@ bool FileSystem::format(uint16_t bsize) {
     }
 
     //写入格式化标记、块大小
-    disk->seekStart(sizeof(capasity));
+    disk->seekStart(sizeof(capacity));
     isUnformatted = 0;
     disk->write(reinterpret_cast<char *>(&isUnformatted), sizeof isUnformatted);
     blockSize = bsize;
@@ -44,25 +44,25 @@ bool FileSystem::format(uint16_t bsize) {
     systemInfo.flag = 0;
 
     systemInfo.freeBlockStackTop = 1;                 //空闲块栈顶初始位于磁盘块1
-    uint32_t totalBlock = capasity / blockSize;         //磁盘被划分的块数
+    uint32_t totalBlock = capacity / blockSize;         //磁盘被划分的块数
     uint32_t blockStackSize = totalBlock * sizeof(uint32_t) / blockSize;  //空闲块栈所占用的磁盘块个数
     if (totalBlock * sizeof(uint32_t) % blockSize != 0) {
         blockStackSize += 1;
     }
 
     systemInfo.rootLocation = blockStackSize + 1;       //根目录位于空闲块栈底的下一个块
-    systemInfo.avaliableCapasity = blockSize * (totalBlock - blockStackSize - 3);       //初始可用块个数=总容量-栈大小-引导超级块-根目录i节点-根目录项
+    systemInfo.avaliableCapasity =
+            blockSize * (totalBlock - blockStackSize - 3);       //初始可用块个数=总容量-栈大小-引导超级块-根目录i节点-根目录项
     systemInfo.freeBlockNumber = totalBlock - blockStackSize - 3;       //空闲块个数=总块数-空闲块栈大小-引导块-根目录项
 
-    //初始化磁盘中的空闲块栈，并登记栈顶所在块与偏移
+    //初始化磁盘中的空闲块栈
     uint32_t ptr = (blockStackSize + 1) * blockSize;
-    std::cout<<ptr<<std::endl;
     for (uint32_t b = totalBlock - 1; b >= blockStackSize + 3; --b) {
         ptr -= sizeof(uint32_t);
         disk->seekStart(ptr);
         disk->write(reinterpret_cast<char *>(&b), sizeof b);
     }
-
+    //确定空闲块栈顶的偏移量
     disk->seekStart(blockSize * 1);
     bool findStackTop = false;
     auto &i = systemInfo.freeBlockStackTop;
@@ -80,26 +80,31 @@ bool FileSystem::format(uint16_t bsize) {
             break;
         }
     }
-
+    //创建根目录，配置根目录i节点和目录列表的信息
+    INode rootINode{};
+    Directory dir{};
+    rootINode.uid = 0;    //0表示系统
+    rootINode.bno = systemInfo.rootLocation + 1;    //根目录所在磁盘块为i节点所在磁盘块下一位
+    rootINode.flag = 0x7f;         //01111111，目录，所有用户都有rwx权限
+    dir.item[0].inodeIndex = systemInfo.rootLocation;
+    strcpy(dir.item[0].name, ".");       //当前目录指向自己，根目录没有上级目录
+    dir.item[1].inodeIndex = 0;
+    disk->seekStart(systemInfo.rootLocation * blockSize);
+    //std::cout << systemInfo.rootLocation * blockSize << std::endl;
+    disk->write(reinterpret_cast<char *>(&rootINode), sizeof(rootINode));
+    disk->seekStart(rootINode.bno * blockSize);
+    //std::cout << rootINode.bno * blockSize << std::endl;
+    disk->write(reinterpret_cast<char *>(&dir), sizeof(dir));
+    //将超级块信息写入磁盘0号块指定区域
+    disk->seekStart(sizeof(capacity) + sizeof(isUnformatted) + sizeof(blockSize));
     disk->write(reinterpret_cast<char *>(&systemInfo), sizeof(systemInfo));
     //写入空闲块栈
     auto blocks = stack->getBlocks();
     disk->seekStart(systemInfo.freeBlockStackTop * blockSize);
     disk->read(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
     stack->setStackTop(systemInfo.freeBlockStackOffset);
-
-    INode rootINode;
-    Directory dir;
-    rootINode.uid=0;    //0表示系统
-    rootINode.bno=systemInfo.rootLocation+1;
-    rootINode.flag=0x7f;         //01111111，目录，所有用户都有rwx权限
-    dir.item[0].inodeIndex = systemInfo.rootLocation;
-    strcpy(dir.item[0].name,".");       //当前目录指向自己
-    dir.item[1].inodeIndex = 0;
-    disk->seekStart(systemInfo.rootLocation * blockSize);
-    disk->write(reinterpret_cast<char *>(&rootINode), sizeof rootINode);
-    disk->seekStart(rootINode.bno*blockSize);
-    disk->write(reinterpret_cast<char *>(&dir), sizeof dir);
+    disk->seekStart(0);
+    disk->write(reinterpret_cast<char *>(&capacity),sizeof(capacity));
     return true;
 }
 
@@ -109,7 +114,7 @@ bool FileSystem::mount() {
     }
     //读取磁盘容量与是否格式化的信息
     disk->seekStart(0);
-    disk->read(reinterpret_cast<char *>(&capasity), sizeof(capasity));
+    disk->read(reinterpret_cast<char *>(&capacity), sizeof(capacity));
     disk->read(reinterpret_cast<char *>(&isUnformatted), sizeof(isUnformatted));
     isOpen = true;
     if (!isUnformatted) {
@@ -126,33 +131,37 @@ bool FileSystem::mount() {
 }
 
 uint32_t FileSystem::blockAllocate() {
-    bool isStackEmpty=stack->empty();
-    if(isStackEmpty){
-        auto blocks=stack->getBlocks();
+    bool isStackEmpty = stack->empty();
+    if (isStackEmpty) {
+        auto blocks = stack->getBlocks();
         systemInfo.freeBlockStackTop++;
-        systemInfo.freeBlockStackOffset=0;
-        disk->seekStart(systemInfo.freeBlockStackTop*blockSize);
+        systemInfo.freeBlockStackOffset = 0;
+        disk->seekStart(systemInfo.freeBlockStackTop * blockSize);
         disk->read(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
         stack->setStackTop(systemInfo.freeBlockStackOffset);
     }
     uint32_t ret = stack->getBlock();
     systemInfo.freeBlockStackOffset++;
-    systemInfo.flag=1;
+    systemInfo.flag = 1;
+    disk->seekStart(0);
+    disk->write(reinterpret_cast<char *>(&capacity),sizeof(capacity));
     return ret;
 }
 
 void FileSystem::blockFree(uint32_t bno) {
-    bool isStackFull=stack->full();
-    if(isStackFull){
-        auto blocks=stack->getBlocks();
-        disk->seekStart(systemInfo.freeBlockStackTop*blockSize);
+    bool isStackFull = stack->full();
+    if (isStackFull) {
+        auto blocks = stack->getBlocks();
+        disk->seekStart(systemInfo.freeBlockStackTop * blockSize);
         disk->write(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
         systemInfo.freeBlockStackTop--;
-        systemInfo.freeBlockStackOffset=stack->getMaxSize();
+        systemInfo.freeBlockStackOffset = stack->getMaxSize();
         stack->setStackTop(systemInfo.freeBlockStackOffset);
     }
     stack->revokeBlock(bno);
-    systemInfo.flag=1;
+    disk->seekStart(0);
+    disk->write(reinterpret_cast<char *>(&capacity),sizeof(capacity));
+    systemInfo.flag = 1;
 }
 
 void FileSystem::read(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
@@ -187,20 +196,20 @@ void FileSystem::locale(uint32_t bno, uint16_t offset) {
 
 void FileSystem::revokeInstance() {
     delete instance;
-    instance= nullptr;
+    instance = nullptr;
 }
 
 void FileSystem::update() {
-    if(systemInfo.flag==1){
-        systemInfo.flag=0;
+    if (systemInfo.flag == 1) {
+        systemInfo.flag = 0;
         //写入基础信息
-        disk->seekStart(sizeof(capasity));
+        disk->seekStart(sizeof(capacity));
         disk->write(reinterpret_cast<char *>(&isUnformatted), sizeof isUnformatted);
         disk->write(reinterpret_cast<char *>(&blockSize), sizeof blockSize);
         disk->write(reinterpret_cast<char *>(&systemInfo), sizeof(systemInfo));
         //写入空闲块栈信息
-        auto blocks=stack->getBlocks();
-        disk->seekStart(systemInfo.freeBlockStackTop*blockSize);
+        auto blocks = stack->getBlocks();
+        disk->seekStart(systemInfo.freeBlockStackTop * blockSize);
         disk->write(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
     }
 }

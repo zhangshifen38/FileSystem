@@ -4,7 +4,7 @@
 
 #include "FreeBlockStack.h"
 
-FreeBlockStack::FreeBlockStack() : maxSize(BLOCK_SIZE/sizeof(uint32_t)) {
+FreeBlockStack::FreeBlockStack() : maxSize(BLOCK_SIZE/(8 * sizeof(uint32_t))) {
 
 }
 

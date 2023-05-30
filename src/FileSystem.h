@@ -43,7 +43,7 @@ public:
 private:
     static FileSystem *instance;
     DiskDriver *disk;           //虚拟磁盘对象
-    uint32_t capasity;          //读取到的磁盘容量
+    uint32_t capacity;          //读取到的磁盘容量
     int8_t isUnformatted;       //未格式化标记，-1未格式化，0已经格式化
     uint16_t blockSize;         //块大小
     bool isOpen;                //磁盘是否打开标记

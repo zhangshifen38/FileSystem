@@ -21,7 +21,7 @@ public:
 private:
     const uint32_t maxSize;                                    //栈大小
     uint32_t stackTop;                                   //栈顶指针
-    uint32_t blocks[BLOCK_SIZE/sizeof(uint32_t)];   //栈本体，占一个块大小
+    uint32_t blocks[BLOCK_SIZE/(8*sizeof(uint32_t))];   //栈本体，占一个块大小
 };
 
 

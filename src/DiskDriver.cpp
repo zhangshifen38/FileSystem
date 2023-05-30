@@ -26,7 +26,7 @@ bool DiskDriver::open() {
     std::ifstream t(diskName);      //使用读入流来判断文件是否存在
     if (t.is_open()) {
         t.close();
-        disk.open(diskName, std::ios::in | std::ios::out|std::ios::binary);
+        disk.open(diskName, std::ios::in | std::ios::out | std::ios::binary);
         isOpen = true;
         return true;
     }
@@ -48,43 +48,49 @@ bool DiskDriver::init(uint32_t sz) {
     }
     std::ofstream c(diskName, std::ios::binary | std::ios::out);
     //填充虚拟磁盘
-    c.seekp(0,std::ios::beg);
-    for(uint32_t i=0;i<sz;++i){
-        c.write("",1);
+    c.seekp(0, std::ios::beg);
+    for (uint32_t i = 0; i < sz; ++i) {
+        c.write("", 1);
     }
-    c.seekp(0,std::ios::beg);
+    c.seekp(0, std::ios::beg);
     c.write(reinterpret_cast<char *>(&sz), sizeof(sz));
-    int8_t ok=-1;     //未格式化标记
-    c.write(reinterpret_cast<char *>(&ok),sizeof(ok));
+    int8_t ok = -1;     //未格式化标记
+    c.write(reinterpret_cast<char *>(&ok), sizeof(ok));
     c.close();
     return true;
 }
 
 void DiskDriver::seekStart(uint32_t sz) {
-    disk.seekg(sz,std::ios::beg);
+    disk.seekp(sz, std::ios::beg);
+    //std::cout<<cursor<<std::endl;
 }
 
 void DiskDriver::seekCurrent(uint32_t sz) {
-    disk.seekg(sz,std::ios::cur);
+    disk.seekp(sz, std::ios::cur);
+    //std::cout<<cursor<<std::endl;
 }
 
 void DiskDriver::read(char *buf, uint32_t sz) {
-    disk.read(buf,sz);
+    disk.read(buf, sz);
+    disk.flush();
+    disk.clear();
 }
 
 void DiskDriver::write(char *buf, uint32_t sz) {
-    disk.write(buf,sz);
+    disk.write(buf, sz);
+    disk.flush();
+    disk.clear();
 }
 
 DiskDriver::~DiskDriver() {
-    if(isOpen){
+    if (isOpen) {
         disk.close();
     }
 }
 
 void DiskDriver::revokeInstance() {
     delete instance;
-    instance= nullptr;
+    instance = nullptr;
 }
 
 

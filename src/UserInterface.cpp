@@ -162,6 +162,7 @@ void UserInterface::touch(uint8_t uid,std::string fileName) {
     //给文件分配空闲磁盘块
     uint32_t fileDisk = fileSystem->blockAllocate();
     fileIndex.index[0]=fileDisk;
+    fileIndex.index[1]=0;
     fileIndex.next=0;
 
     //把文件索引表写入磁盘
