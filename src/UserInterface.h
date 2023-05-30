@@ -22,6 +22,7 @@ public:
     void ls();//ls命令,显示当前目录所有文件信息
     void touch(uint8_t uid,std::string fileName);//touch命令,创建文件
     bool duplicateDetection(std::string name);//重复名检测
+    void cd(std::string directoryName);//cd命令,进入文件夹
     ~UserInterface();
     void revokeInstance();
 private:
