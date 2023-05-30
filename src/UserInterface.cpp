@@ -9,7 +9,7 @@ UserInterface *UserInterface::instance = nullptr;
 void UserInterface::mkdir(uint8_t uid, std::string directoryName) {
     int directoryIndex = -1;
     //遍历所有目录项,找到空闲目录项
-    for (int i = 0; i < 256; i++) {
+    for (int i = 0; i < DIRECTORY_NUMS; i++) {
         if (directory.item[i].inodeIndex == 0) {
             directoryIndex = i;
             break;
@@ -18,6 +18,12 @@ void UserInterface::mkdir(uint8_t uid, std::string directoryName) {
     //目录项满了
     if (directoryIndex == -1) {
         std::cout << "directory full!" << std::endl;
+        return;
+    }
+
+    //重复文件检测
+    if(duplicateDetection(directoryName)){
+        std::cout<<"touch:cannot create directory '"<<directoryName<<"':"<<"File exists"<<std::endl;
         return;
     }
 
@@ -51,7 +57,7 @@ void UserInterface::mkdir(uint8_t uid, std::string directoryName) {
     directory.item[directoryIndex].inodeIndex = directoryInodeDisk;
 
     //将更新后的当前目录信息写入磁盘
-    fileSystem->write(directoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+    fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
 
     //更新已分配磁盘块
     fileSystem->update();
@@ -79,7 +85,7 @@ void UserInterface::initialize() {
     INode rootInode{};
     fileSystem->read(root_disk, 0, reinterpret_cast<char *>(&rootInode), sizeof(rootInode));
     fileSystem->read(rootInode.bno, 0, reinterpret_cast<char *> (&directory), sizeof(directory));
-    diretoryDisk = rootInode.bno;
+    nowDiretoryDisk = rootInode.bno;
 
 }
 
@@ -105,7 +111,63 @@ void UserInterface::revokeInstance() {
 }
 
 void UserInterface::ls() {
-    for (int i = 0; i < 256 && directory.item[i].inodeIndex != 0; i++) {
+    for (int i = 0; i < DIRECTORY_NUMS && directory.item[i].inodeIndex != 0; i++) {
         std::cout << directory.item[i].name << "\t";
     }
+}
+
+void UserInterface::touch(uint8_t uid,std::string fileName) {
+    int directoryIndex = -1;
+    //遍历所有目录项,找到空闲目录项
+    for (int i = 0; i < DIRECTORY_NUMS; i++) {
+        if (directory.item[i].inodeIndex == 0) {
+            directoryIndex = i;
+            break;
+        }
+    }
+    //目录项满了
+    if (directoryIndex == -1) {
+        std::cout << "directory full!" << std::endl;
+        return;
+    }
+
+    //重复文件检测
+    if(duplicateDetection(fileName)){
+        std::cout<<"touch:cannot create file '"<<fileName<<"':"<<"File exists"<<std::endl;
+        return;
+    }
+    //给文件索引表分配空闲磁盘块
+    uint32_t fileIndexDisk = fileSystem->blockAllocate();
+    //新文件i节点
+    INode fileInode{};
+    //给新文件的i结点分配空闲磁盘块
+    uint32_t fileInodeDisk = fileSystem->blockAllocate();
+    fileInode.bno = fileIndexDisk;
+    fileInode.flag = 0x3f;//00 111 111b
+    fileInode.uid = uid;
+    //把i结点写入磁盘
+    fileSystem->write(fileInodeDisk, 0, reinterpret_cast<char *>(&fileInode), sizeof(fileInode));
+    //更新目录项信息
+    strcpy(directory.item[directoryIndex].name,fileName.c_str());
+    directory.item[directoryIndex].inodeIndex=fileInodeDisk;
+
+    //将更新后的当前目录信息写入磁盘
+    fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+    FileIndex fileIndex;
+    //给文件分配空闲磁盘块
+    uint32_t fileDisk = fileSystem->blockAllocate();
+    fileIndex.index[0]=fileDisk;
+    fileIndex.next=0;
+
+    //把文件索引表写入磁盘
+    fileSystem->write(fileInodeDisk,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
+
+    fileSystem->update();
+}
+
+bool UserInterface::duplicateDetection(std::string name) {
+    for(int i=0;i<DIRECTORY_NUMS;i++){
+        if(directory.item[i].name==name) return true;
+    }
+    return false;
 }

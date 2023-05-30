@@ -11,7 +11,9 @@ using std::endl;
 int main() {
     UserInterface *userInterface = UserInterface::getInstance();
     userInterface->initialize();
-    userInterface->mkdir(1,"test");
+//    userInterface->mkdir(1,"test");
+    userInterface->touch(1,"file1");
+    userInterface->touch(1,"file1");
     userInterface->ls();
     return 0;
 }

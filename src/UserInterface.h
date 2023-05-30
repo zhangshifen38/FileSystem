@@ -9,6 +9,7 @@
 #include "Constraints.h"
 #include "iostream"
 #include "cstring"
+#include "entity/FileIndex.h"
 
 /*
  * @brief 为用户提供的接口，支持用户常用的功能
@@ -19,12 +20,14 @@ public:
     void initialize();//初始化
     void mkdir(uint8_t uid,std::string directoryName);//mkdir命令,创建目录
     void ls();//ls命令,显示当前目录所有文件信息
+    void touch(uint8_t uid,std::string fileName);//touch命令,创建文件
+    bool duplicateDetection(std::string name);//重复名检测
     ~UserInterface();
     void revokeInstance();
 private:
     static UserInterface *instance;
     Directory directory;//当前目录
-    uint32_t diretoryDisk;//当前目录所在磁盘块号
+    uint32_t nowDiretoryDisk;//当前目录所在磁盘块号
     FileSystem *fileSystem;
     UserInterface();
 };
