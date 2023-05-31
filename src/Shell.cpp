@@ -9,11 +9,13 @@ void Shell::running_shell() {
     init();
     std::string input;
     std::string word;
-    if(user.uid==0){
-        cmd_login();
-        std::getchar();
-    }
-    while(true){
+
+    while(!isExit){
+        if(user.uid==0){
+            cmd_login();
+            std::getchar();
+            nowPath.clear();
+        }
         outPutPrefix();
         std::getline(std::cin,input);
         cmd.clear();
@@ -54,6 +56,8 @@ void Shell::running_shell() {
         }else if(cmd_1=="rename"){
             cmd_rename();
             continue;
+        }else if(cmd_1=="logout"){
+            cmd_logout();
         }else{
             std::cout<<"undefined command!"<<std::endl;
             continue;
@@ -64,11 +68,13 @@ void Shell::running_shell() {
 //            std::cout<<w<<std::endl;
 //        }
     }
+    cout<<"Bye!"<<endl;
 }
 
 Shell::Shell() {
     userInterface=UserInterface::getInstance();
     user.uid=0;
+    isExit= false;
 }
 
 void Shell::outPutPrefix() {
@@ -76,7 +82,7 @@ void Shell::outPutPrefix() {
     for(const auto& s:nowPath){
         std::cout<<"/"<<s;
     }
-    std::cout<<"$";
+    std::cout<<"/ $";
 }
 
 void Shell::cmd_cd() {
@@ -84,17 +90,45 @@ void Shell::cmd_cd() {
         return;
     }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
-    if(src[0]=="."){
-        return;
+//hz part
+//    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+//    if(src[0]=="."){
+//        return;
+//    }
+//    if(src[0]==".."){
+//        if(!nowPath.empty()) nowPath.pop_back();
+//        userInterface->cd("..");
+//        return;
+//    }
+//    for(const auto& s:src) nowPath.push_back(s);
+//    userInterface->cd(src);
+//zhl part
+    vector<string> src= split_path(cmd_src);
+    bool ok= true;
+    for(string& item:src){
+        if(item==""){
+            userInterface->goToRoot();
+            nowPath.clear();
+        }else if(item=="."){
+            continue;
+        } else if(item==".."){
+            ok=userInterface->cd(item);
+            if(ok){
+                if(!nowPath.empty()){
+                    nowPath.pop_back();
+                }
+            } else{
+                break;
+            }
+        }else{
+            ok=userInterface->cd(item);
+            if(ok){
+                nowPath.push_back(item);
+            }else{
+                break;
+            }
+        }
     }
-    if(src[0]==".."){
-        if(!nowPath.empty()) nowPath.pop_back();
-        userInterface->cd("..");
-        return;
-    }
-    for(const auto& s:src) nowPath.push_back(s);
-    userInterface->cd(src);
 }
 
 const std::vector<std::string> &Shell::getCmd() const {
@@ -270,4 +304,48 @@ void Shell::cmd_chmod() {
         return;
     }
     userInterface->chmod(cmd[1],cmd[2],src);
+}
+
+void Shell::cmd_logout() {
+    string op="-s";
+    if(cmd.size()==2){
+        op=cmd[1];
+    }else if(cmd.size()!=1){
+        cout<<"logout: too much operand"<<endl;
+        return;
+    }
+    if(op!="-s" && op!="-e"){
+        cout<<"logout: unknown oprand: \'"<<op<<"\'"<<endl;
+        return;
+    }
+    user.uid=0;
+    if(op=="-e"){
+        isExit= true;
+    }
+}
+
+void Shell::cmd_zedit() {
+
+}
+
+vector<string> Shell::split_path(string &path) {
+    vector<string> paths;
+    path+='/';      //方便程序处理
+    string item="";
+    bool occur=false;    //判断是否出现路径符号/，多个斜杠算作一个
+    for(char ch:path){
+        if(ch=='/'){
+            if(!occur){
+                paths.push_back(item);
+                item="";
+                occur= true;
+            }else{
+                continue;
+            }
+        } else{
+            occur= false;
+            item+=ch;
+        }
+    }
+    return paths;
 }

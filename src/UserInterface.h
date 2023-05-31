@@ -33,7 +33,7 @@ public:
     void touch(uint8_t uid, std::string fileName);//touch命令接口,创建文件
     void touch(uint8_t uid, std::vector<std::string> src, std::string fileName);//touch命令接口,根据src路径创建文件
     bool duplicateDetection(std::string name);//重复名检测
-    void cd(std::string directoryName);//cd命令接口,进入当前目录的文件夹
+    bool cd(std::string directoryName);//cd命令接口,进入当前目录的文件夹，返回切换是否成功
     void cd(std::vector<std::string> src);//cd命令接口,根据src提供的路径进入文件夹
     uint32_t fileIndexBlockFree(uint32_t disk);//回收文件索引表中所有文件的块以及文件索引表本身的块,并返回还有没有下一个索引
     void wholeDirItemsMove(int itemLocation);//将从指定位置开始的目录项整体前移
@@ -51,13 +51,14 @@ public:
     void chmod(std::string who, std::string how, std::vector<std::string> src);//对src指出的文件设置who(uoa)的how权限(rwx)
     //格式为chmod oau rwx src
 
+    ~UserInterface();
+    void revokeInstance();
 
+    //zhl part
     uint8_t userVerify(std::string &username, std::string &password);        //用户鉴别，鉴别成功返回uid，否则返回0
     void getUser(uint8_t uid, User *user);                    //根据uid提取用户信息
+    void goToRoot();        //进入根目录
 
-    ~UserInterface();
-
-    void revokeInstance();
 
 private:
     static UserInterface *instance;
