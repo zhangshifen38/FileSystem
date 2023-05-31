@@ -6,6 +6,7 @@
 
 
 void Shell::running_shell() {
+    init();
     std::string input;
     std::string word;
     while(true){
@@ -44,22 +45,13 @@ void Shell::running_shell() {
 
 }
 
-
-
-const std::string &Shell::getUser() const {
-    return user;
-}
-
-void Shell::setUser(const std::string &user) {
-    Shell::user = user;
-}
-
 Shell::Shell() {
+    userInterface=UserInterface::getInstance();
     //running_shell();
 }
 
 void Shell::outPutPrefix() {
-    std::cout<<"FileSystem@"<<getUser()<<":~$";
+    std::cout<<"FileSystem@"<<user.name<<": $";
 }
 
 void Shell::cmd_cd() {
@@ -184,5 +176,25 @@ void Shell::cmd_rmdir() {
                 std::cout<<c<<std::endl;
             }
         }
+    }
+}
+
+void Shell::init() {
+    cout<<"               +-------------------------------------+"<<endl;
+    cout<<"               |    Simple FileSystem Simulation     |"<<endl;
+    cout<<"               +-------------------------------------+"<<endl;
+    userInterface->initialize();
+    string userName;
+    string password;
+    while(1){
+        cout<<"Login as:"<<flush;
+        cin>>userName;
+        cout<<"Password:"<<flush;
+        cin>>password;
+        //TODO 验证用户是否存在
+        strcpy(user.name,"user1");
+        user.uid=1;
+        //添加完验证模块以后修改上面的代码
+        break;
     }
 }

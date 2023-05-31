@@ -7,15 +7,26 @@
 
 #include <string>
 #include <iostream>
+#include "UserInterface.h"
+#include "entity/User.h"
 #include "sstream"
 #include "vector"
+#include "Tools.h"
+
+using std::string;
+using std::cout;
+using std::endl;
+using std::flush;
+using std::cin;
 /*
  * @brief 一个命令行界面，实现类似Linux的命令行交互
  */
 class Shell {
 private:
     std::vector<std::string> cmd;//用户输入的整行命令
-    std::string user="user";//当前登录用户名
+    //std::string user="user";//当前登录用户名
+    User user;                  //当前登录用户
+    UserInterface* userInterface;
 public:
     Shell();
     //界面主程序
@@ -37,13 +48,12 @@ public:
     //mv命令处理程序
     void cmd_mv();
 
+    void init();
+
     const std::vector<std::string> &getCmd() const;
 
     void setCmd(const std::vector<std::string> &cmd);
 
-    [[nodiscard]] const std::string &getUser() const;
-
-    void setUser(const std::string &user);
     void outPutPrefix();
 
 };
