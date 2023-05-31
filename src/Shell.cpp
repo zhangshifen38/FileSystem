@@ -9,10 +9,11 @@ void Shell::running_shell() {
     init();
     std::string input;
     std::string word;
+    if(user.uid==0){
+        cmd_login();
+        std::getchar();
+    }
     while(true){
-        if(user.uid==0){
-            cmd_login();
-        }
         outPutPrefix();
         std::getline(std::cin,input);
         cmd.clear();
@@ -20,68 +21,80 @@ void Shell::running_shell() {
         while(ss>>word){
             cmd.push_back(word);
         }
-//        std::string cmd_1=words[0];
-//        if(cmd_1=="cd"){
-//            cmd_cd();
-//        }
-//        else if(cmd_1=="ls"){
-//            cmd_ls();
-//        }else if(cmd_1=="mkdir"){
-//            cmd_mkdir();
-//        }else if(cmd_1=="rmdir"){
-//            cmd_rmdir();
-//        }else if(cmd_1=="touch"){
-//            cmd_touch();
-//        }else if(cmd_1=="rm"){
-//            cmd_rm();
-//        }else if(cmd_1=="cp"){
-//            cmd_cp();
-//        }else if(cmd_1=="mv"){
-//            cmd_mv();
-//        }else{
+        std::string cmd_1=cmd[0];
+        if(cmd_1=="cd"){
+            cmd_cd();
+            continue;
+        }else if(cmd_1=="mkdir"){
+            cmd_mkdir();
+            continue;
+        }
+        else if(cmd_1=="ls") {
+            cmd_ls();
+            continue;
+        }
+        else if(cmd_1=="format") {
+            cmd_format();
+            continue;
+        }else if(cmd_1=="rmdir"){
+            cmd_rmdir();
+            continue;
+        }else if(cmd_1=="touch"){
+            cmd_touch();
+            continue;
+        }else if(cmd_1=="rm") {
+            cmd_rm();
+            continue;
+        }else if(cmd_1=="mv"){
+            cmd_mv();
+            continue;
+        }else if(cmd_1=="chmod"){
+            cmd_chmod();
+            continue;
+        }else if(cmd_1=="rename"){
+            cmd_rename();
+            continue;
+        }else{
+            std::cout<<"undefined command!"<<std::endl;
+            continue;
+        }
 //            std::cout<<"undefined cmd!"<<std::endl;
 //        }
-        for(const std::string& w:cmd){
-            std::cout<<w<<std::endl;
-        }
+//        for(const std::string& w:cmd){
+//            std::cout<<w<<std::endl;
+//        }
     }
-
 }
 
 Shell::Shell() {
     userInterface=UserInterface::getInstance();
     user.uid=0;
-    //running_shell();
 }
 
 void Shell::outPutPrefix() {
-    std::cout<<"FileSystem@"<<user.name<<": $";
+    std::cout<<"FileSystem@"<<user.name<<":";
+    for(const auto& s:nowPath){
+        std::cout<<"/"<<s;
+    }
+    std::cout<<"$";
 }
 
 void Shell::cmd_cd() {
-    std::cout<<"cd"<<std::endl;
-    //进入用户主目录处理
     if(cmd.size()==1){
-
+        return;
     }
-    else{
-        //进入根目录处理
-        if(cmd[1]=="/"){
-            std::cout<<cmd[1]<<std::endl;
-        }
-        //进入用户主目录处理
-        else if(cmd[1]=="~"){
-            std::cout<<cmd[1]<<std::endl;
-        }
-        //返回上级目录处理
-        else if(cmd[1]=="../"||cmd[1]==".."){
-            std::cout<<cmd[1]<<std::endl;
-        }
-        //返回上两级目录处理
-        else if(cmd[1]=="../.."){
-            std::cout<<cmd[1]<<std::endl;
-        }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src[0]=="."){
+        return;
     }
+    if(src[0]==".."){
+        if(!nowPath.empty()) nowPath.pop_back();
+        userInterface->cd("..");
+        return;
+    }
+    for(const auto& s:src) nowPath.push_back(s);
+    userInterface->cd(src);
 }
 
 const std::vector<std::string> &Shell::getCmd() const {
@@ -93,94 +106,52 @@ void Shell::setCmd(const std::vector<std::string> &cmd) {
 }
 
 void Shell::cmd_ls() {
-    std::cout<<"ls"<<std::endl;
-    //显示当前文件夹一般文件处理
     if(cmd.size()==1){
-
+        userInterface->ls();
+        return;
     }
-    //显示所有文件处理
-    if(cmd[1]=="-a"){
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }else if(cmd[1]=="-l"){
-        //详细信息显示处理
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }
-    else if(cmd[1]=="-h"){
-        //人性化显示，文件大小以B、K、M显示
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }
-    else if(cmd[1]=="-i"){
-        //显示Linux对于每个文件的id
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }
-    else if(cmd[1]=="-t"){
-        //按时间信息排序
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }
-    else if(cmd[1]=="-d"){
-        //显示目录属性
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
-    }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    userInterface->ls(src);
 }
 
 void Shell::cmd_mkdir() {
-    std::cout<<"mkdir"<<std::endl;
-    //创建文件夹
-    if(cmd.size()==2){
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"mkdir: missing operand"<<endl;
+        return;
     }
-    else{
-        //建立目录的同时设置目录的权限
-        if(cmd[1]=="-m"){
-            for(auto c:cmd){
-                std::cout<<c<<std::endl;
-            }
-        }
-        //若所要建立目录的上层目录目前尚未建立，则会一并建立上层目录
-        else if(cmd[1]=="-p"){
-            for(auto c:cmd){
-                std::cout<<c<<std::endl;
-            }
-        }
-    }
+    std::string dirName=src.back();
+    src.pop_back();
+    if(!src.empty()) userInterface->mkdir(user.uid,src,dirName);
+    else userInterface->mkdir(user.uid,dirName);
 }
 
 void Shell::cmd_rmdir() {
-    std::cout<<"rmdir"<<std::endl;
-    //删除文件夹
-    if(cmd.size()==2){
-        for(auto c:cmd){
-            std::cout<<c<<std::endl;
-        }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"mkdir: missing operand"<<endl;
+        return;
     }
-    else{
-        //建立目录的同时设置目录的权限
-        if(cmd[1]=="-m"){
-            for(auto c:cmd){
-                std::cout<<c<<std::endl;
-            }
-        }
-            //若所要建立目录的上层目录目前尚未建立，则会一并建立上层目录
-        else if(cmd[1]=="-p"){
-            for(auto c:cmd){
-                std::cout<<c<<std::endl;
-            }
-        }
+    std::string dirName=src.back();
+    src.pop_back();
+    if(!src.empty()) userInterface->rmdir(user.uid,src,dirName);
+    else userInterface->rmdir(user.uid,dirName);
+}
+
+void Shell::cmd_rm() {
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"mkdir: missing operand"<<endl;
+        return;
     }
+    std::string fileName=src.back();
+    src.pop_back();
+    if(!src.empty()) userInterface->rm(user.uid,src,fileName);
+    else userInterface->rm(user.uid,fileName);
 }
 
 void Shell::init() {
@@ -208,4 +179,95 @@ void Shell::cmd_login() {
             break;
         }
     }
+}
+
+std::vector<std::string> Shell::splitWithStl(std::string str, std::string part) {
+    std::vector<std::string> resVec;
+
+    if ("" == str)//若为空，则返回原字符串
+    {
+        return resVec;
+    }
+    //方便截取最后一段数据
+    std::string strs = str + part;
+
+    size_t pos = strs.find(part);//find函数的返回值，若找到分隔符返回分隔符第一次出现的位置，
+    //否则返回npos
+    //此处用size_t类型是为了返回位置
+    size_t size = strs.size();
+
+    while (pos != std::string::npos)
+    {
+        std::string x = strs.substr(0, pos);//substr函数，获得子字符串
+        resVec.push_back(x);
+        strs = strs.substr(pos + 1, size);
+        pos = strs.find(part);
+    }
+    return resVec;
+}
+
+void Shell::cmd_touch() {
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"touch: missing operand"<<endl;
+        return;
+    }
+    std::string fileName=src.back();
+    src.pop_back();
+    if(!src.empty()) userInterface->touch(user.uid,src,fileName);
+    else userInterface->touch(user.uid,fileName);
+}
+
+void Shell::cmd_mv() {
+    if(cmd.size()!=3){
+        cout<<"mv: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"mv: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_des = cmd[2];
+    std::vector<std::string> des = splitWithStl(cmd_des,"/");
+    if(des.empty()){
+        cout<<"mv: missing operand"<<endl;
+        return;
+    }
+    userInterface->mv(userInterface->judge(src),src,des);
+}
+
+void Shell::cmd_rename() {
+    if(cmd.size()!=3){
+        cout<<"rename: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"rename: missing operand"<<endl;
+        return;
+    }
+    userInterface->rename(userInterface->judge(src),src,cmd[2]);
+}
+
+void Shell::cmd_format() {
+    userInterface->format();
+    nowPath.clear();
+}
+
+void Shell::cmd_chmod() {
+    if(cmd.size()!=4){
+        cout<<"chmod: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_src = cmd[3];
+    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    if(src.empty()){
+        cout<<"chmod: missing operand"<<endl;
+        return;
+    }
+    userInterface->chmod(cmd[1],cmd[2],src);
 }

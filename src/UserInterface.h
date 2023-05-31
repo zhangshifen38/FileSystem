@@ -25,15 +25,22 @@ public:
     static UserInterface *getInstance();    //为了防止冲突，使用单例获取用户接口对象
     void initialize();//初始化
     void mkdir(uint8_t uid, std::string directoryName);//mkdir命令接口,创建目录
+    void mkdir(uint8_t uid, std::vector<std::string> src, std::string directoryName);//mkdir命令接口,根据src指出的路径创建目录
     bool judge(uint32_t disk);//判断i结点指向的是目录还是文件,目录真,文件假
+    int judge(std::vector<std::string> src);//判断src指向的是目录还是文件,文件1,目录2
     void ls();//ls命令接口,显示当前目录所有文件信息
+    void ls(std::vector<std::string> src);//ls命令接口,src指出的目录的所有文件信息
     void touch(uint8_t uid, std::string fileName);//touch命令接口,创建文件
+    void touch(uint8_t uid, std::vector<std::string> src, std::string fileName);//touch命令接口,根据src路径创建文件
     bool duplicateDetection(std::string name);//重复名检测
-    void cd(std::string directoryName);//cd命令接口,进入文件夹
+    void cd(std::string directoryName);//cd命令接口,进入当前目录的文件夹
+    void cd(std::vector<std::string> src);//cd命令接口,根据src提供的路径进入文件夹
     uint32_t fileIndexBlockFree(uint32_t disk);//回收文件索引表中所有文件的块以及文件索引表本身的块,并返回还有没有下一个索引
     void wholeDirItemsMove(int itemLocation);//将从指定位置开始的目录项整体前移
     void rm(uint8_t uid, std::string fileName);//rm命令接口,删除文件
+    void rm(uint8_t uid, std::vector<std::string> src, std::string fileName);//rm命令接口,根据src路径删除文件
     void rmdir(uint8_t uid, std::string dirName);//rmdir命令接口,删除文件夹
+    void rmdir(uint8_t uid, std::vector<std::string> src, std::string dirName);//rmdir命令接口,根据src路径删除文件夹
     std::pair<uint32_t, int>
     findDisk(int code, std::vector<std::string> src);//从当前目录开始,根据src数组提供的路径,找到对应文件或者目录所在的目录所在的磁盘块号和该文件或者目录的i结点所在的目录项序号
     //第一个为对应文件或者目录所在的目录所在的磁盘块号;第二个为该文件或者目录的i结点所在的目录项序号;code为方式码,1为文件,2为目录
@@ -41,7 +48,8 @@ public:
     // 数组存了被移动的文件或者目录的路径,code为方式码,1为文件,2为文件夹
     void rename(int code, std::vector<std::string> src, std::string newName);//将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
     void format();//format命令接口,格式化整个文件系统,并把当前目录设置为根目录
-    void chmod(std::string who,std::string how,std::vector<std::string> src);//对src指出的文件设置who(uoa)的how权限(rwx)
+    void chmod(std::string who, std::string how, std::vector<std::string> src);//对src指出的文件设置who(uoa)的how权限(rwx)
+    //格式为chmod oau rwx src
 
 
     uint8_t userVerify(std::string &username, std::string &password);        //用户鉴别，鉴别成功返回uid，否则返回0

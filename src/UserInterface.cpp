@@ -218,7 +218,7 @@ void UserInterface::cd(std::string directoryName) {
     //设置新的当前目录
     nowDiretoryDisk = iNode.bno;
     fileSystem->read(iNode.bno, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
-    std::cout << "/" << directoryName << std::endl;
+//    std::cout << "/" << directoryName << std::endl;
 }
 
 bool UserInterface::judge(uint32_t disk) {
@@ -601,6 +601,176 @@ void UserInterface::chmod(std::string who, std::string how, std::vector<std::str
     fileSystem->read(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof(iNode));
     iNode.flag&=rwxResult;
     fileSystem->write(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof(iNode));
+}
+
+void UserInterface::cd(std::vector<std::string> src) {
+    auto findRes= findDisk(2,src);
+    if(findRes.first==-1){
+        std::cout << "cd: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t InodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode dirInode{};
+    fileSystem->read(InodeDisk,0,reinterpret_cast<char*>(&dirInode),sizeof (dirInode));
+    nowDiretoryDisk=dirInode.bno;
+    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+}
+
+void UserInterface::mkdir(uint8_t uid, std::vector<std::string> src,std::string dirName) {
+        auto findRes= findDisk(2,std::move(src));
+        if(findRes.first==-1){
+            std::cout << "mkdir: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+            return;
+        }
+        uint32_t tmpDirDisk=findRes.first;
+        Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t  inodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    tmpDirDisk=iNode.bno;
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+    mkdir(uid,std::move(dirName));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+}
+
+void UserInterface::ls(std::vector<std::string> src) {
+    auto findRes= findDisk(2,src);
+    if(findRes.first==-1){
+        std::cout << "ls: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t  inodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    tmpDirDisk=iNode.bno;
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+    ls();
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+}
+
+void UserInterface::touch(uint8_t uid, std::vector<std::string> src, std::string fileName) {
+    auto findRes= findDisk(2,src);
+    if(findRes.first==-1){
+        std::cout << "touch: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t  inodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    tmpDirDisk=iNode.bno;
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+    touch(uid,fileName);
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+}
+
+void UserInterface::rm(uint8_t uid, std::vector<std::string> src, std::string fileName) {
+    auto findRes= findDisk(2,src);
+    if(findRes.first==-1){
+        std::cout << "rm: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t  inodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    tmpDirDisk=iNode.bno;
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+    rm(uid,fileName);
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+}
+
+void UserInterface::rmdir(uint8_t uid, std::vector<std::string> src, std::string dirName) {
+    auto findRes= findDisk(2,src);
+    if(findRes.first==-1){
+        std::cout << "rmdir: " << RED << "failed" << RESET << ":no such directory" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    uint32_t  inodeDisk=tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    tmpDirDisk=iNode.bno;
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+    rmdir(uid,dirName);
+    std::swap(directory,tmpDir);
+    std::swap(nowDiretoryDisk,tmpDirDisk);
+}
+
+int UserInterface::judge(std::vector<std::string> src) {
+    //获取名
+    std::string srcName = src.back();
+    src.pop_back();
+    uint32_t tmpDirectoryDisk = nowDiretoryDisk;
+    Directory tmpDirectory = directory;
+    while (!src.empty()) {
+        std::string dirName = src.front();
+        src.erase(src.begin());
+        int dirLocation = -1;
+
+        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
+        //找到所在的目录
+        for (int i = 0; i < DIRECTORY_NUMS; i++) {
+            if (tmpDirectory.item[i].inodeIndex == 0) break;
+            if (strcmp(tmpDirectory.item[i].name, dirName.c_str()) == 0 && judge(tmpDirectory.item[i].inodeIndex)) {
+                dirLocation = i;
+                break;
+            }
+        }
+        if (dirLocation == -1) {
+            std::cout << RED << "failed " << RESET << "'" << dirName << "' No such directory" << std::endl;
+            return 0;
+        }
+        INode dirInode{};
+        fileSystem->read(tmpDirectory.item[dirLocation].inodeIndex, 0, reinterpret_cast<char *>(&dirInode),
+                         sizeof(dirInode));
+        tmpDirectoryDisk = dirInode.bno;
+        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
+    }
+    int location = -1;
+    //找到对应i结点
+    for (int i = 0; i < DIRECTORY_NUMS; i++) {
+        if (tmpDirectory.item[i].inodeIndex == 0) break;
+        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0) {
+            location = i;
+            break;
+        }
+    }
+    if (location == -1) {
+        std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file or directory" << std::endl;
+        return 0;
+    }
+    INode iNode{};
+    fileSystem->read(tmpDirectory.item[location].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    if(judge(iNode.bno)) return 2;
+    else return 1;
 }
 
 
