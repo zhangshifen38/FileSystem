@@ -467,7 +467,6 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
 }
 
 std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::string> src) {
-
     bool judgeFileDir;
     if (code == 1) judgeFileDir = false;
     else judgeFileDir = true;
@@ -476,36 +475,82 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     std::string srcName = src.back();
     src.pop_back();
     uint32_t tmpDirectoryDisk = nowDiretoryDisk;
-    Directory tmpDirectory = directory;
-    while (!src.empty()) {
-        std::string dirName = src.front();
-        src.erase(src.begin());
-        int dirLocation = -1;
-
-        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
-        //找到所在的目录
-        for (int i = 0; i < DIRECTORY_NUMS; i++) {
-            if (tmpDirectory.item[i].inodeIndex == 0) break;
-            if (strcmp(tmpDirectory.item[i].name, dirName.c_str()) == 0 && judge(tmpDirectory.item[i].inodeIndex)) {
-                dirLocation = i;
-                break;
-            }
+//hz work
+//    Directory tmpDirectory = directory;
+//    while (!src.empty()) {
+//        std::string dirName = src.front();
+//        src.erase(src.begin());
+//        int dirLocation = -1;
+//        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
+//        //找到所在的目录
+//        for (int i = 0; i < DIRECTORY_NUMS; i++) {
+//            if (tmpDirectory.item[i].inodeIndex == 0) break;
+//            if (strcmp(tmpDirectory.item[i].name, dirName.c_str()) == 0 && judge(tmpDirectory.item[i].inodeIndex)) {
+//                dirLocation = i;
+//                break;
+//            }
+//        }
+//        if (dirLocation == -1) {
+//            std::cout << RED << "failed " << RESET << "'" << dirName << "' No such directory" << std::endl;
+//            return std::make_pair(-1, -1);
+//        }
+//        INode dirInode{};
+//        fileSystem->read(tmpDirectory.item[dirLocation].inodeIndex, 0, reinterpret_cast<char *>(&dirInode),
+//                         sizeof(dirInode));
+//        tmpDirectoryDisk = dirInode.bno;
+//        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
+//    }
+//    int location = -1;
+//    //找到对应i结点
+//    for (int i = 0; i < DIRECTORY_NUMS; i++) {
+//        if (tmpDirectory.item[i].inodeIndex == 0) break;
+//        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0 && (judge(tmpDirectory.item[i].inodeIndex) ==
+//                                                                        judgeFileDir)) {
+//            location = i;
+//            break;
+//        }
+//    }
+//    if (location == -1) {
+//        if (judgeFileDir)
+//            std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory" << std::endl;
+//        else std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file" << std::endl;
+//        return std::make_pair(-1, -1);
+//    }
+//    return std::make_pair(tmpDirectoryDisk, location);
+//zhl work
+    bool ok=true;   //能否找到目录
+    std::string dirName;   //输出错误信息用
+    //在此次直接调用cd函数来寻找
+    for(std::string& item:src){
+        if(item==""){
+            //空，直接寻找根目录
+            goToRoot();
+        }else if(item==".."){
+            //上级
+            ok=cd(item);
+        }else if(item=="."){
+            //当前
+            continue;
+        } else{
+            ok=cd(item);
         }
-        if (dirLocation == -1) {
-            std::cout << RED << "failed " << RESET << "'" << dirName << "' No such directory" << std::endl;
-            return std::make_pair(-1, -1);
+        if(!ok){
+            dirName=item;   //记录哪一步出错了
+            break;
         }
-        INode dirInode{};
-        fileSystem->read(tmpDirectory.item[dirLocation].inodeIndex, 0, reinterpret_cast<char *>(&dirInode),
-                         sizeof(dirInode));
-        tmpDirectoryDisk = dirInode.bno;
-        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
+    }
+    if(!ok){
+        std::cout << RED << "failed: " << RESET << "'" << dirName << "' No such directory" << std::endl;
+        //还原现场
+        nowDiretoryDisk=tmpDirectoryDisk;
+        fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
+        return std::make_pair(-1, -1);
     }
     int location = -1;
     //找到对应i结点
     for (int i = 0; i < DIRECTORY_NUMS; i++) {
-        if (tmpDirectory.item[i].inodeIndex == 0) break;
-        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0 && (judge(tmpDirectory.item[i].inodeIndex) ==
+        if (directory.item[i].inodeIndex == 0) break;
+        if (strcmp(directory.item[i].name, srcName.c_str()) == 0 && (judge(directory.item[i].inodeIndex) ==
                                                                         judgeFileDir)) {
             location = i;
             break;
@@ -515,9 +560,17 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
         if (judgeFileDir)
             std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory" << std::endl;
         else std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file" << std::endl;
+        //还原现场
+        nowDiretoryDisk=tmpDirectoryDisk;
+        fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
         return std::make_pair(-1, -1);
     }
-    return std::make_pair(tmpDirectoryDisk, location);
+    //记录下需要返回的数据
+    std::pair<uint32_t ,int> ret=std::make_pair(nowDiretoryDisk, location);
+    //还原现场
+    nowDiretoryDisk=tmpDirectoryDisk;
+    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
+    return ret;
 }
 
 void UserInterface::rename(int code, std::vector<std::string> src, std::string newName) {

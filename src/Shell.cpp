@@ -145,7 +145,8 @@ void Shell::cmd_ls() {
         return;
     }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    //std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    vector<string> src= split_path(cmd_src);
     userInterface->ls(src);
 }
 
