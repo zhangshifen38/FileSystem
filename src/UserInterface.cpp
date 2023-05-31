@@ -33,7 +33,7 @@ void UserInterface::initialize() {
         std::cout << "mount failed!" << std::endl << "begin format!" << std::endl;
         //如果格式化失败,创建新磁盘
         if (!fileSystem->format(BLOCK_SIZE / 8)) {
-            std::cout << "format failed!please input disk size(MB):";
+            std::cout << "format failed because there is no disk.\nStart creating a disk, please input disk size(MB):"<<std::flush;
             uint32_t disk_size;
             std::cin >> disk_size;
             fileSystem->createDisk(disk_size * 1024 * 1024);
@@ -383,8 +383,8 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
         case 1: {
             //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
             auto findRes = findDisk(1, src);
-            if(findRes.first==-1){
-                std::cout << "mv: " << RED << "failed" << RESET <<":cannot find src"<< std::endl;
+            if (findRes.first == -1) {
+                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
                 return;
             }
             Directory tmpDir{};
@@ -407,8 +407,8 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
         case 2: {
             //查找源目录所在的目录所在的磁盘块号以及对应目录项编号
             auto findRes = findDisk(2, src);
-            if(findRes.first==-1){
-                std::cout << "mv: " << RED << "failed" << RESET <<":cannot find des"<< std::endl;
+            if (findRes.first == -1) {
+                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
                 return;
             }
             Directory tmpDir{};
@@ -429,40 +429,40 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
             break;
     }
     if (srcInodeIndex == 0) {
-        std::cout << "mv: " << RED << "failed" << RESET <<":cannot find src"<< std::endl;
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
         return;
     }
 
     /*查找目的目录*/
     //查找目的目录所在的目录所在的磁盘块号以及对应目录项编号
-    auto findRes = findDisk(2,des);
+    auto findRes = findDisk(2, des);
     Directory tmpDir{};
     uint32_t tmpDirDisk = findRes.first;
     fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     uint32_t desInodeIndex = tmpDir.item[findRes.second].inodeIndex;
     if (desInodeIndex == 0) {
-        std::cout << "mv: " << RED << "failed" << RESET <<":cannot find des"<< std::endl;
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
         return;
     }
     INode desInode{};
-    fileSystem->read(desInodeIndex,0,reinterpret_cast<char*>(&desInode),sizeof (desInode));
-    tmpDirDisk=desInode.bno;
-    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    fileSystem->read(desInodeIndex, 0, reinterpret_cast<char *>(&desInode), sizeof(desInode));
+    tmpDirDisk = desInode.bno;
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     //在目标目录查找空目录项
-    int location=-1;
-    for(int i=0;i<DIRECTORY_NUMS;i++){
-        if(tmpDir.item[i].inodeIndex==0){
-            location=i;
+    int location = -1;
+    for (int i = 0; i < DIRECTORY_NUMS; i++) {
+        if (tmpDir.item[i].inodeIndex == 0) {
+            location = i;
             break;
         }
     }
-    if(location==-1){
-        std::cout << "mv: " << RED << "failed" << RESET <<":des directory full"<< std::endl;
+    if (location == -1) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":des directory full" << std::endl;
         return;
     }
-    strcpy(tmpDir.item[location].name,src.back().c_str());
-    tmpDir.item[location].inodeIndex=srcInodeIndex;
-    fileSystem->write(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    strcpy(tmpDir.item[location].name, src.back().c_str());
+    tmpDir.item[location].inodeIndex = srcInodeIndex;
+    fileSystem->write(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     fileSystem->update();
 }
 
@@ -476,7 +476,7 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     std::string srcName = src.back();
     src.pop_back();
     uint32_t tmpDirectoryDisk = nowDiretoryDisk;
-    Directory tmpDirectory=directory;
+    Directory tmpDirectory = directory;
     while (!src.empty()) {
         std::string dirName = src.front();
         src.erase(src.begin());
@@ -505,8 +505,8 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     //找到对应i结点
     for (int i = 0; i < DIRECTORY_NUMS; i++) {
         if (tmpDirectory.item[i].inodeIndex == 0) break;
-        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0 && (judge(tmpDirectory.item[i].inodeIndex)==
-            judgeFileDir)) {
+        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0 && (judge(tmpDirectory.item[i].inodeIndex) ==
+                                                                        judgeFileDir)) {
             location = i;
             break;
         }
@@ -522,16 +522,24 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
 }
 
 void UserInterface::rename(int code, std::vector<std::string> src, std::string newName) {
-    auto findRes= findDisk(code,src);
-    if(findRes.first==-1){
-        std::cout << "rename: " << RED << "failed" << RESET <<":cannot find src"<< std::endl;
+    auto findRes = findDisk(code, src);
+    if (findRes.first == -1) {
+        std::cout << "rename: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
         return;
     }
     //找到需要被改名的文件或者目录所在的目录,和其对应的目录项编号
-    uint32_t tmpDirDisk=findRes.first;
+    uint32_t tmpDirDisk = findRes.first;
     Directory tmpDir{};
-    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
-    int dirLocation=findRes.second;
-    strcpy(tmpDir.item[dirLocation].name,newName.c_str());
-    fileSystem->write(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    int dirLocation = findRes.second;
+    strcpy(tmpDir.item[dirLocation].name, newName.c_str());
+    fileSystem->write(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+}
+
+uint8_t UserInterface::userVerify(std::string &username, std::string &password) {
+    return fileSystem->userVerify(username, password);
+}
+
+void UserInterface::getUser(uint8_t uid, User *user) {
+    fileSystem->getUser(uid, user);
 }

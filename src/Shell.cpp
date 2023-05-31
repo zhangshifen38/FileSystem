@@ -187,14 +187,18 @@ void Shell::init() {
     string userName;
     string password;
     while(1){
-        cout<<"Login as:"<<flush;
+        cout<<"Login as: "<<flush;
         cin>>userName;
-        cout<<"Password:"<<flush;
+        cout<<"Password: "<<flush;
         cin>>password;
-        //TODO 验证用户是否存在
-        strcpy(user.name,"user1");
-        user.uid=1;
-        //添加完验证模块以后修改上面的代码
-        break;
+
+        uint8_t uid=userInterface->userVerify(userName,password);
+        if(uid==0){
+            cout<<"Access denied.Please check username or password.\n"<<endl;
+        }else{
+            userInterface->getUser(uid,&user);
+            break;
+        }
     }
+    cout<<(int)user.uid<<' '<<user.name<<endl;
 }
