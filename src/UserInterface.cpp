@@ -520,3 +520,18 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
 
     return std::make_pair(tmpDirectoryDisk, location);
 }
+
+void UserInterface::rename(int code, std::vector<std::string> src, std::string newName) {
+    auto findRes= findDisk(code,src);
+    if(findRes.first==-1){
+        std::cout << "rename: " << RED << "failed" << RESET <<":cannot find src"<< std::endl;
+        return;
+    }
+    //找到需要被改名的文件或者目录所在的目录,和其对应的目录项编号
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    int dirLocation=findRes.second;
+    strcpy(tmpDir.item[dirLocation].name,newName.c_str());
+    fileSystem->write(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+}

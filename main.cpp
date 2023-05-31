@@ -27,5 +27,10 @@ int main() {
     userInterface->cd("..");
     userInterface->cd("dir1");
     userInterface->ls();
+    userInterface->cd("..");
+    std::vector<std::string> src1{"dir1","file1.2"};
+    userInterface->rename(1,src1,"file1.2.1");
+    userInterface->cd("dir1");
+    userInterface->ls();
     return 0;
 }

@@ -42,6 +42,7 @@ public:
     //第一个为对应文件或者目录所在的目录所在的磁盘块号;第二个为该文件或者目录的i结点所在的目录项序号;code为方式码,1为文件,2为目录
     void mv(int code,std::vector<std::string> src,std::vector<std::string> des);//mv命令接口,移动文件或者目录
     // 数组存了被移动的文件或者目录的路径,code为方式码,1为文件,2为文件夹
+    void rename(int code,std::vector<std::string>src,std::string newName);//将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
     ~UserInterface();
     void revokeInstance();
 private:
