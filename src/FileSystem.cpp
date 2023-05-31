@@ -55,6 +55,26 @@ bool FileSystem::format(uint16_t bsize) {
             blockSize * (totalBlock - blockStackSize - 3);       //初始可用块个数=总容量-栈大小-引导超级块-根目录i节点-根目录项
     systemInfo.freeBlockNumber = totalBlock - blockStackSize - 3;       //空闲块个数=总块数-空闲块栈大小-引导块-根目录项
 
+    //初始化用户，用户名默认user1-user8，uid分别为1-8
+    char userName[]="user0";
+    for(uint8_t i=0;i<8;++i){
+        systemInfo.users[i].uid=i+1;
+        userName[4]='0'+i+1;
+        std::strcpy(systemInfo.users[i].name,userName);
+        std::strcpy(systemInfo.users[i].password,"123456");
+    }
+
+    //初始化信赖用户矩阵，自己必定信任自己
+    for(uint8_t i=0;i<8;++i){
+        for(uint8_t j=0;j<8;++j){
+            if(i==j){
+                systemInfo.trustMatrix[i][j]=1;
+            }else{
+                systemInfo.trustMatrix[i][j]=0;
+            }
+        }
+    }
+
     //初始化磁盘中的空闲块栈
     uint32_t ptr = (blockStackSize + 1) * blockSize;
     for (uint32_t b = totalBlock - 1; b >= blockStackSize + 3; --b) {
@@ -62,6 +82,7 @@ bool FileSystem::format(uint16_t bsize) {
         disk->seekStart(ptr);
         disk->write(reinterpret_cast<char *>(&b), sizeof b);
     }
+
     //确定空闲块栈顶的偏移量
     disk->seekStart(blockSize * 1);
     bool findStackTop = false;
@@ -80,6 +101,7 @@ bool FileSystem::format(uint16_t bsize) {
             break;
         }
     }
+
     //创建根目录，配置根目录i节点和目录列表的信息
     INode rootINode{};
     Directory dir{};
@@ -90,21 +112,20 @@ bool FileSystem::format(uint16_t bsize) {
     strcpy(dir.item[0].name, ".");       //当前目录指向自己，根目录没有上级目录
     dir.item[1].inodeIndex = 0;
     disk->seekStart(systemInfo.rootLocation * blockSize);
-    //std::cout << systemInfo.rootLocation * blockSize << std::endl;
     disk->write(reinterpret_cast<char *>(&rootINode), sizeof(rootINode));
     disk->seekStart(rootINode.bno * blockSize);
-    //std::cout << rootINode.bno * blockSize << std::endl;
     disk->write(reinterpret_cast<char *>(&dir), sizeof(dir));
+
     //将超级块信息写入磁盘0号块指定区域
     disk->seekStart(sizeof(capacity) + sizeof(isUnformatted) + sizeof(blockSize));
     disk->write(reinterpret_cast<char *>(&systemInfo), sizeof(systemInfo));
+
     //写入空闲块栈
     auto blocks = stack->getBlocks();
     disk->seekStart(systemInfo.freeBlockStackTop * blockSize);
     disk->read(reinterpret_cast<char *>(blocks), sizeof(blocks[0]) * stack->getMaxSize());
     stack->setStackTop(systemInfo.freeBlockStackOffset);
-    disk->seekStart(0);
-    disk->write(reinterpret_cast<char *>(&capacity),sizeof(capacity));
+
     return true;
 }
 
@@ -216,4 +237,85 @@ void FileSystem::update() {
 
 uint32_t FileSystem::getRootLocation() {
     return systemInfo.rootLocation;
+}
+
+uint8_t FileSystem::userVerify(std::string userName, std::string password) {
+    uint8_t verify=0;
+    for(uint8_t i=0;i<8;++i){
+        if(strcmp(systemInfo.users[i].name,userName.c_str())==0 && strcmp(systemInfo.users[i].password,password.c_str())==0){
+            verify = systemInfo.users[i].uid;
+            break;
+        }
+    }
+    return verify;
+}
+
+bool FileSystem::grantTrustUser(std::string currentUser, std::string targetUser) {
+    int8_t curIdx=-1,tarIdx=-1;
+    for(int8_t i=0;i<8;++i){
+        if(strcmp(systemInfo.users[i].name,currentUser.c_str())==0){
+            curIdx=i;
+        }
+        if(strcmp(systemInfo.users[i].name,targetUser.c_str())==0){
+            tarIdx=i;
+        }
+    }
+    if(curIdx==-1 || tarIdx==-1){
+        return false;
+    }else{
+        systemInfo.trustMatrix[curIdx][tarIdx]=1;
+        return true;
+    }
+}
+
+bool FileSystem::revokeTrustUser(std::string currentUser, std::string targetUser) {
+    int8_t curIdx=-1,tarIdx=-1;
+    for(int8_t i=0;i<8;++i){
+        if(strcmp(systemInfo.users[i].name,currentUser.c_str())==0){
+            curIdx=i;
+        }
+        if(strcmp(systemInfo.users[i].name,targetUser.c_str())==0){
+            tarIdx=i;
+        }
+    }
+    if(curIdx==-1 || tarIdx==-1){
+        return false;
+    }else{
+        systemInfo.trustMatrix[curIdx][tarIdx]=0;
+        return true;
+    }
+}
+
+uint8_t FileSystem::verifyTrustUser(uint8_t currentUserUid, uint8_t targetUserUid) {
+    int8_t curIdx=-1,tarIdx=-1;
+    for(int8_t i=0;i<8;++i){
+        if(systemInfo.users[i].uid==currentUserUid){
+            curIdx=i;
+        }
+        if(systemInfo.users[i].uid==targetUserUid){
+            tarIdx=i;
+        }
+    }
+    if(curIdx==-1 || tarIdx==-1){
+        return 0;
+    }else{
+        return systemInfo.trustMatrix[curIdx][tarIdx];
+
+    }
+}
+
+void FileSystem::getUser(uint8_t uid, User *user) {
+    int8_t idx=-1;
+    for(int8_t i=0;i<8;++i){
+        if(systemInfo.users[i].uid==uid){
+            idx=i;
+            break;
+        }
+    }
+    if(idx==-1){
+        return;
+    }
+    user->uid=systemInfo.users[idx].uid;
+    strcpy(user->name,systemInfo.users[idx].name);
+    strcpy(user->password,systemInfo.users[idx].password);
 }
