@@ -35,6 +35,12 @@ public:
     void writeNext(char *buf, uint16_t sz);     //从当前位置继续写入数据
     void locale(uint32_t bno, uint16_t offset);     //将读写头移动到bno磁盘块的offset偏移
 
+    uint8_t userVerify(std::string userName, std::string password);     //用户身份认证,若认证成功返回非0的uid，否则返回0
+    bool grantTrustUser(std::string currentUser, std::string targetUser);  //添加信任用户组
+    bool revokeTrustUser(std::string currentUser, std::string targetUser);  //收回信任用户组
+    uint8_t verifyTrustUser(uint8_t currentUserUid,uint8_t targetUserUid);  //查询对于current来说target是否为信任用户，1为信任0为不信任
+    void getUser(uint8_t uid, User *user);         //根据uid读取用户信息
+
     uint32_t getRootLocation();         //读取根目录所在磁盘块
     void update();                      //更新信息
 
