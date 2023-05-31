@@ -14,14 +14,18 @@ int main() {
     userInterface->mkdir(1,"dir1");
     userInterface->mkdir(1,"dir2");
     userInterface->ls();
-    userInterface->cd("dir2");
-    userInterface->touch(1,"file2.1");
-    userInterface->mkdir(1,"dir2.1");
+    userInterface->cd("dir1");
+    userInterface->touch(1,"file1.1");
+    userInterface->touch(1,"file1.2");
     userInterface->ls();
     userInterface->cd("..");
-//    userInterface->rmdir(1,"dir2");
+    std::vector<std::string> src{"dir1","file1.1"};
+    std::vector<std::string> des{"dir2"};
+    userInterface->mv(1,src,des);
+    userInterface->cd("dir2");
     userInterface->ls();
-    userInterface->rmdir(1,"dir2");
+    userInterface->cd("..");
+    userInterface->cd("dir1");
     userInterface->ls();
     return 0;
 }
