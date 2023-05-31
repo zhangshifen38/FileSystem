@@ -40,6 +40,9 @@ public:
     void mv(int code, std::vector<std::string> src, std::vector<std::string> des);//mv命令接口,移动文件或者目录
     // 数组存了被移动的文件或者目录的路径,code为方式码,1为文件,2为文件夹
     void rename(int code, std::vector<std::string> src, std::string newName);//将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
+    void format();//format命令接口,格式化整个文件系统,并把当前目录设置为根目录
+    void chmod(std::string who,std::string how,std::vector<std::string> src);//对src指出的文件设置who(uoa)的how权限(rwx)
+
 
     uint8_t userVerify(std::string &username, std::string &password);        //用户鉴别，鉴别成功返回uid，否则返回0
     void getUser(uint8_t uid, User *user);                    //根据uid提取用户信息

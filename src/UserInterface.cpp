@@ -543,3 +543,61 @@ uint8_t UserInterface::userVerify(std::string &username, std::string &password) 
 void UserInterface::getUser(uint8_t uid, User *user) {
     fileSystem->getUser(uid, user);
 }
+
+void UserInterface::format() {
+    fileSystem->format(BLOCK_SIZE/8);
+    nowDiretoryDisk=fileSystem->getRootLocation();
+    fileSystem->write(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+}
+
+void UserInterface::chmod(std::string who, std::string how, std::vector<std::string> src) {
+    bool hasU= false,hasO= false,hasA= false;
+    if(who.find('a')!=std::string::npos) hasA= true;
+    if(who.find('o')!=std::string::npos) hasO= true;
+    if(who.find('u')!=std::string::npos) hasU= true;
+    bool hasR= false,hasW= false,hasX= false;
+    if(how.find('r')!=std::string::npos) hasR= true;
+    if(how.find('w')!=std::string::npos) hasW= true;
+    if(how.find('x')!=std::string::npos) hasX= true;
+    uint8_t rwxResult=0xc0;//11 000 000
+    uint8_t a_r=0xe4;//r-- 11 100 100
+    uint8_t a_w=0xd2;//-w- 11 010 010
+    uint8_t a_x=0xc9;//--r 11 001 001
+    uint8_t u_r=0xE7;//r-- 11 100 111
+    uint8_t u_w=0xD7;//-w- 11 010 111
+    uint8_t u_x=0xCF;//--x 11 001 111
+    uint8_t o_r=0xFC;//r-- 11 111 100
+    uint8_t o_w=0xFA;//-w- 11 111 010
+    uint8_t o_x=0xF9;//--x 11 111 001
+    if(hasA){
+        if(hasR) rwxResult|=a_r;
+        if(hasW) rwxResult|=a_w;
+        if(hasX) rwxResult|=a_x;
+    }
+    else{
+        if(hasU){
+            if(hasR) rwxResult|=u_r;
+            if(hasW) rwxResult|=u_w;
+            if(hasX) rwxResult|=u_x;
+        }
+        if(hasO){
+            if(hasR) rwxResult|=o_r;
+            if(hasW) rwxResult|=o_w;
+            if(hasX) rwxResult|=o_x;
+        }
+    }
+    auto findRes= findDisk(1,src);
+    if(findRes.first==-1){
+        std::cout << "chmod: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk=findRes.first;
+    Directory tmpDir{};
+    fileSystem->write(tmpDirDisk,0,reinterpret_cast<char*>(&tmpDir),sizeof (tmpDir));
+    INode iNode{};
+    fileSystem->read(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof(iNode));
+    iNode.flag&=rwxResult;
+    fileSystem->write(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof(iNode));
+}
+
+
