@@ -9,14 +9,16 @@ using std::cout;
 using std::endl;
 
 int main() {
-//    UserInterface *userInterface = UserInterface::getInstance();
-//    userInterface->initialize();
-//    userInterface->mkdir(1,"dir1");
-//    userInterface->mkdir(1,"dir2");
-//    userInterface->ls();
-//    userInterface->cd("dir1");
-//    userInterface->touch(1,"file1.1");
-//    userInterface->touch(1,"file1.2");
+    UserInterface *userInterface = UserInterface::getInstance();
+    userInterface->initialize();
+    userInterface->mkdir(1,"dir1");
+    userInterface->mkdir(1,"dir2");
+    userInterface->ls();
+    userInterface->cd("dir1");
+    userInterface->touch(1,"file1.1");
+    userInterface->touch(1,"file1.2");
+    userInterface->format();
+    userInterface->ls();
 //    userInterface->ls();
 //    userInterface->cd("..");
 //    std::vector<std::string> src{"dir1","file1.1"};
@@ -32,7 +34,7 @@ int main() {
 //    userInterface->rename(1,src1,"file1.2.1");
 //    userInterface->cd("dir1");
 //    userInterface->ls();
-    Shell shell;
-    shell.running_shell();
+//    Shell shell;
+//    shell.running_shell();
     return 0;
 }

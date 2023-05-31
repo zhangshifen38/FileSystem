@@ -546,8 +546,11 @@ void UserInterface::getUser(uint8_t uid, User *user) {
 
 void UserInterface::format() {
     fileSystem->format(BLOCK_SIZE/8);
-    nowDiretoryDisk=fileSystem->getRootLocation();
-    fileSystem->write(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+    fileSystem->update();
+    INode iNode{};
+    fileSystem->read(fileSystem->getRootLocation(),0,reinterpret_cast<char*>(&iNode),sizeof(iNode));
+    nowDiretoryDisk=iNode.bno;
+    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
 }
 
 void UserInterface::chmod(std::string who, std::string how, std::vector<std::string> src) {
