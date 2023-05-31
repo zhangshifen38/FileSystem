@@ -34,6 +34,7 @@ public:
     bool duplicateDetection(std::string name);//重复名检测
     void cd(std::string directoryName);//cd命令接口,进入文件夹
     uint32_t fileIndexBlockFree(uint32_t disk);//回收文件索引表中所有文件的块以及文件索引表本身的块,并返回还有没有下一个索引
+    void wholeDirItemsMove(int itemLocation);//将从指定位置开始的目录项整体前移
     void rm(uint8_t uid,std::string fileName);//rm命令接口,删除文件
     void rmdir(uint8_t uid,std::string dirName);//rmdir命令接口,删除文件夹
     ~UserInterface();

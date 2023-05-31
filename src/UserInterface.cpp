@@ -255,17 +255,18 @@ void UserInterface::rm(uint8_t uid, std::string fileName) {
     //回收i结点
     fileSystem->blockFree(directory.item[fileLocation].inodeIndex);
     //更新目录项
-    //如果删除的恰好是最后一项
-    if(fileLocation==DIRECTORY_NUMS-1){
-        directory.item[fileLocation].inodeIndex=0;
-        return;
-    }
-    //目录项整体前移
-    for(int i=fileLocation;i<DIRECTORY_NUMS;i++){
-        if(directory.item[i].inodeIndex==0) break;
-        strcpy(directory.item[i].name,directory.item[i+1].name);
-        directory.item[i].inodeIndex=directory.item[i+1].inodeIndex;
-    }
+    wholeDirItemsMove(fileLocation);
+//    //如果删除的恰好是最后一项
+//    if(fileLocation==DIRECTORY_NUMS-1){
+//        directory.item[fileLocation].inodeIndex=0;
+//        return;
+//    }
+//    //目录项整体前移
+//    for(int i=fileLocation;i<DIRECTORY_NUMS;i++){
+//        if(directory.item[i].inodeIndex==0) break;
+//        strcpy(directory.item[i].name,directory.item[i+1].name);
+//        directory.item[i].inodeIndex=directory.item[i+1].inodeIndex;
+//    }
     //将新的目录项写入磁盘
     fileSystem->write(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
     fileSystem->update();
@@ -282,4 +283,87 @@ uint32_t UserInterface::fileIndexBlockFree(uint32_t disk) {
     uint32_t next = fileIndex.next;
     fileSystem->blockFree(disk);
     return next;
+}
+
+void UserInterface::rmdir(uint8_t uid, std::string dirName) {
+    //先查找对应目录
+    int dirLocation=-1;
+    for(int i=0;i<DIRECTORY_NUMS;i++){
+        if(directory.item[i].inodeIndex==0) break;
+        if(strcmp(directory.item[i].name,dirName.c_str())==0&& judge(directory.item[i].inodeIndex)){
+            dirLocation=i;
+            break;
+        }
+    }
+    if(dirLocation==-1){
+        std::cout<<"rmdir: "<<RED<<"failed"<<RESET<<" to remove '"<<dirName<<"': "<<RED<<"No"<<RESET<<" such directory"<<std::endl;
+        return;
+    }
+    //保存当前目录所在磁盘块
+    uint32_t nowDisk=nowDiretoryDisk;
+    //进入指定目录
+    INode dirInode1{};
+    fileSystem->read(directory.item[dirLocation].inodeIndex,0,reinterpret_cast<char*>(&dirInode1),sizeof (dirInode1));
+    fileSystem->read(dirInode1.bno,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+    nowDiretoryDisk=dirInode1.bno;
+
+    //一个目录的目录项如果只有前两项或者前一项(根目录),那么该层目录递归结束
+    if(directory.item[1].inodeIndex==0||directory.item[2].inodeIndex==0){
+        //回收本层目录所有磁盘块
+        fileSystem->blockFree(nowDiretoryDisk);
+//        return;
+    }
+    else{
+        //还有其他项
+        //如果是文件,就使用rm接口;如果是目录,就递归调用rmdir
+        for(int i=0;i<DIRECTORY_NUMS;i++){
+            if(directory.item[i].inodeIndex==0) break;
+            //文件
+            if(!judge(directory.item[i].inodeIndex)) rm(uid,directory.item[i].name);
+                //目录
+            else if(strcmp(directory.item[i].name,".")!=0&&strcmp(directory.item[i].name,"..")!=0){
+                //保存当前目录
+                uint32_t nowDiretoryDisk1=nowDiretoryDisk;
+                INode dirInode{};
+                fileSystem->read(directory.item[i].inodeIndex,0,reinterpret_cast<char*>(&dirInode),sizeof (dirInode));
+                //进入下一目录
+                fileSystem->read(dirInode.bno,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+                nowDiretoryDisk=dirInode.bno;
+                //回收该i结点
+                fileSystem->blockFree(directory.item[i].inodeIndex);
+                directory.item[i].inodeIndex=0;
+                //递归删除
+                rmdir(uid,directory.item[i].name);
+                //递归返回时重置当前目录
+                fileSystem->read(nowDiretoryDisk1,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+                nowDiretoryDisk=nowDiretoryDisk1;
+            }
+        }
+    }
+
+    //回收指定目录的i结点所在磁盘块
+    fileSystem->blockFree(directory.item[dirLocation].inodeIndex);
+    directory.item[dirLocation].inodeIndex=0;
+    //重置当前目录
+    fileSystem->read(nowDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+    nowDiretoryDisk=nowDisk;
+    //更新目录项
+    wholeDirItemsMove(dirLocation);
+    //将新的目录项写入磁盘
+    fileSystem->write(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+    fileSystem->update();
+}
+
+void UserInterface::wholeDirItemsMove(int itemLocation) {
+    //如果恰好是最后一项
+    if(itemLocation==DIRECTORY_NUMS-1){
+        directory.item[itemLocation].inodeIndex=0;
+        return;
+    }
+    //目录项整体前移
+    for(int i=itemLocation;i<DIRECTORY_NUMS;i++){
+        if(directory.item[i].inodeIndex==0) break;
+        strcpy(directory.item[i].name,directory.item[i+1].name);
+        directory.item[i].inodeIndex=directory.item[i+1].inodeIndex;
+    }
 }

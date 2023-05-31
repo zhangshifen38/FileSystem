@@ -11,19 +11,17 @@ using std::endl;
 int main() {
     UserInterface *userInterface = UserInterface::getInstance();
     userInterface->initialize();
-//    userInterface->mkdir(1,"test");
-    userInterface->touch(1,"file1");
-    userInterface->touch(1,"file1");
     userInterface->mkdir(1,"dir1");
-    userInterface->mkdir(1,"dir1");
+    userInterface->mkdir(1,"dir2");
     userInterface->ls();
-    userInterface->rm(1,"file1");
+    userInterface->cd("dir2");
+    userInterface->touch(1,"file2.1");
+    userInterface->mkdir(1,"dir2.1");
     userInterface->ls();
-    userInterface->cd("dir1");
-    userInterface->touch(1,"file2");
-    userInterface->cd("file2");
+    userInterface->cd("..");
+//    userInterface->rmdir(1,"dir2");
     userInterface->ls();
-    userInterface->rm(1,"file2");
+    userInterface->rmdir(1,"dir2");
     userInterface->ls();
     return 0;
 }
