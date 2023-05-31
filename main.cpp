@@ -17,8 +17,13 @@ int main() {
     userInterface->mkdir(1,"dir1");
     userInterface->mkdir(1,"dir1");
     userInterface->ls();
+    userInterface->rm(1,"file1");
+    userInterface->ls();
     userInterface->cd("dir1");
     userInterface->touch(1,"file2");
+    userInterface->cd("file2");
+    userInterface->ls();
+    userInterface->rm(1,"file2");
     userInterface->ls();
     return 0;
 }
