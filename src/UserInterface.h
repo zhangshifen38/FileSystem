@@ -24,19 +24,19 @@ class UserInterface {
 public:
     static UserInterface *getInstance();    //为了防止冲突，使用单例获取用户接口对象
     void initialize();//初始化
-
+    //zhl:mkdir检查通过
     void mkdir(uint8_t uid, std::string directoryName);//mkdir命令接口,创建目录
     void mkdir(uint8_t uid, std::vector<std::string> src, std::string directoryName);//mkdir命令接口,根据src指出的路径创建目录
-
+    //zhl:ls检查通过
     void ls();//ls命令接口,显示当前目录所有文件信息
     void ls(std::vector<std::string> src);//ls命令接口,src指出的目录的所有文件信息
-
+    //zhl:touch检查通过
     void touch(uint8_t uid, std::string fileName);//touch命令接口,创建文件
     void touch(uint8_t uid, std::vector<std::string> src, std::string fileName);//touch命令接口,根据src路径创建文件
-
+    //zhl:cd检查通过
     bool cd(std::string directoryName);//cd命令接口,进入当前目录的文件夹，返回切换是否成功
     void cd(std::vector<std::string> src);//cd命令接口,根据src提供的路径进入文件夹
-
+    //zhl:rmdir和rm检查通过
     void rm(uint8_t uid, std::string fileName);//rm命令接口,删除文件
     void rm(uint8_t uid, std::vector<std::string> src, std::string fileName);//rm命令接口,根据src路径删除文件
     void rmdir(uint8_t uid, std::string dirName);//rmdir命令接口,删除文件夹

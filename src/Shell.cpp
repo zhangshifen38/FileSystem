@@ -151,8 +151,13 @@ void Shell::cmd_ls() {
 }
 
 void Shell::cmd_mkdir() {
+    if(cmd.size()<=1){
+        cout<<"mkdir: missing operand"<<endl;
+        return;
+    }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    //std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
         cout<<"mkdir: missing operand"<<endl;
         return;
@@ -164,10 +169,15 @@ void Shell::cmd_mkdir() {
 }
 
 void Shell::cmd_rmdir() {
+    if(cmd.size()<=1){
+        cout<<"rmdir: missing operand"<<endl;
+        return;
+    }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    //std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
-        cout<<"mkdir: missing operand"<<endl;
+        cout<<"rmdir: missing operand"<<endl;
         return;
     }
     std::string dirName=src.back();
@@ -177,10 +187,15 @@ void Shell::cmd_rmdir() {
 }
 
 void Shell::cmd_rm() {
+    if(cmd.size()<=1){
+        cout<<"rm: missing operand"<<endl;
+        return;
+    }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    //std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
-        cout<<"mkdir: missing operand"<<endl;
+        cout<<"rm: missing operand"<<endl;
         return;
     }
     std::string fileName=src.back();
@@ -242,8 +257,13 @@ std::vector<std::string> Shell::splitWithStl(std::string str, std::string part) 
 }
 
 void Shell::cmd_touch() {
+    if(cmd.size()<=1){
+        cout<<"touch: missing operand"<<endl;
+        return;
+    }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    //std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    vector<string> src= split_path(cmd_src);
     if(src.empty()){
         cout<<"touch: missing operand"<<endl;
         return;
