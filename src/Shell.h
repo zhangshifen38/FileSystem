@@ -48,7 +48,8 @@ public:
     //mv命令处理程序
     void cmd_mv();
 
-    void init();
+    void init();            //命令行初始化
+    void cmd_login();       //登录
 
     const std::vector<std::string> &getCmd() const;
 

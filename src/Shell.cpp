@@ -10,6 +10,9 @@ void Shell::running_shell() {
     std::string input;
     std::string word;
     while(true){
+        if(user.uid==0){
+            cmd_login();
+        }
         outPutPrefix();
         std::getline(std::cin,input);
         cmd.clear();
@@ -47,6 +50,7 @@ void Shell::running_shell() {
 
 Shell::Shell() {
     userInterface=UserInterface::getInstance();
+    user.uid=0;
     //running_shell();
 }
 
@@ -184,6 +188,10 @@ void Shell::init() {
     cout<<"               |    Simple FileSystem Simulation     |"<<endl;
     cout<<"               +-------------------------------------+"<<endl;
     userInterface->initialize();
+
+}
+
+void Shell::cmd_login() {
     string userName;
     string password;
     while(1){
@@ -200,5 +208,4 @@ void Shell::init() {
             break;
         }
     }
-    cout<<(int)user.uid<<' '<<user.name<<endl;
 }
