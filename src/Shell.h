@@ -32,7 +32,7 @@ private:
 public:
     Shell();
     //根据part分割str
-    std::vector<std::string> splitWithStl(std::string str, std::string part);
+    vector<string> split_path(string& path);
     //界面主程序
     void running_shell();
     //cd命令处理程序
@@ -68,7 +68,7 @@ public:
     void cmd_write();       //写入
     void cmd_seek();        //文件指针修改
     void cmd_zedit();       //简单文本编辑器
-    vector<string> split_path(string& path);
+
 
     const std::vector<std::string> &getCmd() const;
 

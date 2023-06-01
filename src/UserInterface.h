@@ -55,8 +55,7 @@ public:
     void updateDirNow();//更新当前目录信息
     void cp(std::vector<std::string> src, std::vector<std::string> des);//cp命令接口,复制文件或者目录
 
-    bool judge(uint32_t disk);//判断i结点指向的是目录还是文件,目录真,文件假
-    int judge(std::vector<std::string> src);//判断src指向的是目录还是文件,文件1,目录2
+
 
     ~UserInterface();
     void revokeInstance();
@@ -83,6 +82,8 @@ private:
     uint32_t fileIndexBlockFree(uint32_t disk);//回收文件索引表中所有文件的块以及文件索引表本身的块,并返回还有没有下一个索引
     void wholeDirItemsMove(int itemLocation);//将从指定位置开始的目录项整体前移
     bool duplicateDetection(std::string name);//重复名检测
+    bool judge(uint32_t disk);//判断i结点指向的是目录还是文件,目录真,文件假
+    int judge(std::vector<std::string> src);//判断src指向的是目录还是文件,文件1,目录2
 
 
     UserInterface();

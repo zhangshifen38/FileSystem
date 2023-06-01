@@ -898,6 +898,7 @@ void UserInterface::updateDirNow() {
 }
 
 void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
+    buf[0]='\0';
     auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "read: " << RED << "failed" << RESET << ":no such file" << std::endl;

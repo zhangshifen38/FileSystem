@@ -166,8 +166,7 @@ uint32_t FileSystem::blockAllocate() {
     uint32_t ret = stack->getBlock();
     systemInfo.freeBlockStackOffset++;
     systemInfo.flag = 1;
-    disk->seekStart(0);
-    disk->write(reinterpret_cast<char *>(&capacity), sizeof(capacity));
+    systemInfo.freeBlockNumber--;
     return ret;
 }
 
@@ -182,8 +181,7 @@ void FileSystem::blockFree(uint32_t bno) {
         stack->setStackTop(systemInfo.freeBlockStackOffset);
     }
     stack->revokeBlock(bno);
-    disk->seekStart(0);
-    disk->write(reinterpret_cast<char *>(&capacity), sizeof(capacity));
+    systemInfo.freeBlockNumber++;
     systemInfo.flag = 1;
 }
 
