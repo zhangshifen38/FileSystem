@@ -53,6 +53,10 @@ void UserInterface::initialize() {
     //将根目录信息写入当前目录
     fileSystem->read(rootInode.bno, 0, reinterpret_cast<char *> (&directory), sizeof(directory));
     nowDiretoryDisk = rootInode.bno;
+    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
+        fileOpenTable[i].fileNumber=0;
+        fileOpenTable[i].cursor=0;
+    }
 }
 
 
@@ -905,6 +909,8 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
         std::cout << "read: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
         return;
     }
+
+
     FileIndex fileIndexTable{};
     fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
     //获取当前光标位置
@@ -925,14 +931,13 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
     uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
     //得到当前块剩余字节
     uint16_t resBlockSz=BLOCK_SIZE_BYTE-offset;
-    //得到超出当前块的读取字节数
-    uint16_t ResByte=sz-resBlockSz;
+
     //已经读了的字节
     uint16_t readByte=0;
 
 
     //先把当前块读完,如果需要读的字节数小于等于当前块剩余字节数,读完返回
-    if(ResByte<=0){
+    if(sz<=resBlockSz){
         fileSystem->read(cursorBlock,offset,buf,sz);
         readByte=sz;
         buf+=readByte;
@@ -943,7 +948,8 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
     readByte=resBlockSz;
     buf+=readByte;
     fileOpenTable[fileLocation].cursor+=readByte;
-
+    //得到超出当前块的读取字节数
+    uint16_t ResByte=sz-resBlockSz;
 
     //计算剩余需要读取字节数占多少个块
     int blocksToRead=ResByte/BLOCK_SIZE_BYTE;
@@ -956,6 +962,7 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
         fileIndexNums++;
         if(fileIndexNums==FILE_INDEX_SIZE){
             uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+            //读入新索引表
             fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
             fileIndexNums=0;
         }
@@ -974,4 +981,178 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
     fileSystem->read(fileIndexTable.index[fileIndexNums],0,buf,lastBlockToReadOffset);
 }
 
+void UserInterface::write(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
+    auto findRes = findDisk(std::move(src));
+    if (findRes.first == -1) {
+        std::cout << "write: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            fileLocation = i;
+            break;
+        }
+    }
+    if (fileLocation == -1) {
+        std::cout << "write: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
+        return;
+    }
 
+    FileIndex fileIndexTable{};
+    uint32_t fileIndexTableBlock=fileOpenTable[fileLocation].iNode.bno;
+    fileSystem->read(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    //获取当前光标位置
+    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
+    //根据当前光标位置计算光标偏移了多少个索引表
+    int fileIndexTableNums=nowCursor/(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    //根据当前光标位置计算光标在最后一个索引表中的第几项
+    int fileIndexNums=nowCursor%(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    //光标不在第一个索引表中,则找到所处索引表
+    while(fileIndexNums>0){
+        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileIndexNums--;
+    }
+    //得到光标所处的块
+    uint32_t cursorBlock=fileIndexTable.index[fileIndexNums];
+    //得到光标在当前块的偏移量
+    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
+    //得到当前块剩余字节
+    uint16_t resBlockSz=BLOCK_SIZE_BYTE-offset;
+
+    //已经写入的字节
+    uint16_t writeByte=0;
+
+    //先把当前块写完,如果需要写入的字节数小于等于当前块剩余字节数,写完返回
+    if(sz<=resBlockSz){
+        fileSystem->write(cursorBlock,offset,buf,sz);
+        writeByte=sz;
+        buf+=writeByte;
+        fileOpenTable[fileLocation].cursor+=writeByte;
+        return;
+    }
+    fileSystem->write(cursorBlock,offset,buf,resBlockSz);
+    writeByte=resBlockSz;
+    buf+=writeByte;
+    fileOpenTable[fileLocation].cursor+=writeByte;
+
+    //得到超出当前块的写入字节数
+    uint16_t ResByte=sz-resBlockSz;
+    //计算剩余需要写入字节数占多少个块
+    int blocksToWrite=ResByte/BLOCK_SIZE_BYTE;
+    //计算剩余需要写入字节数在最后一个块中的偏移量
+    int lastBlockToWriteOffset=ResByte%BLOCK_SIZE_BYTE;
+
+
+    //把所有需要写入的完整块写完,如果当前索引表到末尾了还没写完,就新建索引表
+    while(blocksToWrite--){
+        fileIndexNums++;
+        if(fileIndexNums==FILE_INDEX_SIZE){
+            //先给新索引表分配空间
+            uint32_t nextFileIndexTableBlock= fileSystem->blockAllocate();
+            //记录并更新新索引表位置
+            fileIndexTable.next=nextFileIndexTableBlock;
+            fileSystem->write(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+            fileSystem->update();
+            //进入新索引表
+            fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+            fileIndexNums=0;
+        }
+        //如果该索引项还没有分配磁盘块,就先分配磁盘块
+        if(fileIndexTable.index[fileIndexNums]==0){
+            uint32_t newBlock=fileSystem->blockAllocate();
+            fileIndexTable.index[fileIndexNums]=newBlock;
+            fileSystem->update();
+        }
+        fileSystem->write(fileIndexTable.index[fileIndexNums],0,buf,BLOCK_SIZE_BYTE);
+        buf+=BLOCK_SIZE_BYTE;
+        fileOpenTable[fileLocation].cursor+=BLOCK_SIZE_BYTE;
+    }
+
+    //把最后一个不完整的块也写了
+    fileIndexNums++;
+    if(fileIndexNums==FILE_INDEX_SIZE){
+        //先给新索引表分配空间
+        uint32_t nextFileIndexTableBlock= fileSystem->blockAllocate();
+        //记录并更新新索引表位置
+        fileIndexTable.next=nextFileIndexTableBlock;
+        fileSystem->write(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileSystem->update();
+        //进入新索引表
+        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileIndexNums=0;
+    }
+    //如果该索引项还没有分配磁盘块,就先分配磁盘块
+    if(fileIndexTable.index[fileIndexNums]==0){
+        uint32_t newBlock=fileSystem->blockAllocate();
+        fileIndexTable.index[fileIndexNums]=newBlock;
+        fileSystem->update();
+    }
+    fileSystem->write(fileIndexTable.index[fileIndexNums],0,buf,lastBlockToWriteOffset);
+}
+
+void UserInterface::cp(std::vector<std::string> src, std::vector<std::string> des) {
+    /*查找源文件或者目录的i结点*/
+
+    //被复制的文件或者目录的i结点所在磁盘块号
+    uint32_t srcInodeIndex = 0;
+    Directory tmpDirSrc{};
+    uint32_t tmpDirDiskSrc;
+    int srcIndex;
+    //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
+    auto findRes = findDisk(src);
+    if (findRes.first == -1) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
+        return;
+    }
+    tmpDirDiskSrc = findRes.first;
+    fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+    srcIndex = findRes.second;
+    srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
+
+    if (srcInodeIndex == 0) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
+        return;
+    }
+
+    /*查找目的目录*/
+    //查找目的目录所在的目录所在的磁盘块号以及对应目录项编号
+    auto findResDes = findDisk(des);
+    Directory tmpDir{};
+    uint32_t tmpDirDisk = findResDes.first;
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t desInodeIndex = tmpDir.item[findResDes.second].inodeIndex;
+    if (desInodeIndex == 0) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
+        return;
+    }
+    INode desInode{};
+    fileSystem->read(desInodeIndex, 0, reinterpret_cast<char *>(&desInode), sizeof(desInode));
+    tmpDirDisk = desInode.bno;
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    //在目标目录查找空目录项
+    int location = -1;
+    for (int i = 0; i < DIRECTORY_NUMS; i++) {
+        if (tmpDir.item[i].inodeIndex == 0) {
+            location = i;
+            break;
+        }
+    }
+    if (location == -1) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":des directory full" << std::endl;
+        return;
+    }
+
+    strcpy(tmpDir.item[location].name, src.back().c_str());
+    tmpDir.item[location].inodeIndex = fileSystem->blockAllocate();
+
+    fileSystem->write(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    fileSystem->update();
+
+}

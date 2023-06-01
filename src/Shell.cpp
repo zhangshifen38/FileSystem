@@ -65,6 +65,16 @@ void Shell::running_shell() {
         }else if(cmd_1=="close"){
             cmd_close();
             continue;
+        }else if(cmd_1=="test"){
+            char write[12]="abcdefghijk";
+            std::vector<std::string> src;
+            src.push_back("file1");
+            userInterface->write(user.uid,src,write,11);
+            userInterface->setCursor(2,src,0);
+            char read[5];
+            userInterface->read(user.uid,src,read,4);
+            std::cout<<read<<endl;
+            continue;
         }else{
             std::cout<<"undefined command!"<<std::endl;
             continue;
