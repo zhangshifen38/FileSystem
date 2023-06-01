@@ -55,6 +55,10 @@ public:
     void cmd_format();
     //chmod命令处理程序
     void cmd_chmod();
+    //open命令处理程序
+    void cmd_open();
+    //close命令处理程序
+    void cmd_close();
 
     //AlexHoring写的部分
     void init();            //命令行初始化

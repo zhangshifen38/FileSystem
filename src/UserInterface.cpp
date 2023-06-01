@@ -259,17 +259,7 @@ void UserInterface::rm(uint8_t uid, std::string fileName) {
     fileSystem->blockFree(directory.item[fileLocation].inodeIndex);
     //更新目录项
     wholeDirItemsMove(fileLocation);
-//    //如果删除的恰好是最后一项
-//    if(fileLocation==DIRECTORY_NUMS-1){
-//        directory.item[fileLocation].inodeIndex=0;
-//        return;
-//    }
-//    //目录项整体前移
-//    for(int i=fileLocation;i<DIRECTORY_NUMS;i++){
-//        if(directory.item[i].inodeIndex==0) break;
-//        strcpy(directory.item[i].name,directory.item[i+1].name);
-//        directory.item[i].inodeIndex=directory.item[i+1].inodeIndex;
-//    }
+
     //将新的目录项写入磁盘
     fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
     fileSystem->update();
@@ -475,49 +465,6 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     std::string srcName = src.back();
     src.pop_back();
     uint32_t tmpDirectoryDisk = nowDiretoryDisk;
-//hz work
-//    Directory tmpDirectory = directory;
-//    while (!src.empty()) {
-//        std::string dirName = src.front();
-//        src.erase(src.begin());
-//        int dirLocation = -1;
-//        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
-//        //找到所在的目录
-//        for (int i = 0; i < DIRECTORY_NUMS; i++) {
-//            if (tmpDirectory.item[i].inodeIndex == 0) break;
-//            if (strcmp(tmpDirectory.item[i].name, dirName.c_str()) == 0 && judge(tmpDirectory.item[i].inodeIndex)) {
-//                dirLocation = i;
-//                break;
-//            }
-//        }
-//        if (dirLocation == -1) {
-//            std::cout << RED << "failed " << RESET << "'" << dirName << "' No such directory" << std::endl;
-//            return std::make_pair(-1, -1);
-//        }
-//        INode dirInode{};
-//        fileSystem->read(tmpDirectory.item[dirLocation].inodeIndex, 0, reinterpret_cast<char *>(&dirInode),
-//                         sizeof(dirInode));
-//        tmpDirectoryDisk = dirInode.bno;
-//        fileSystem->read(tmpDirectoryDisk, 0, reinterpret_cast<char *>(&tmpDirectory), sizeof(tmpDirectory));
-//    }
-//    int location = -1;
-//    //找到对应i结点
-//    for (int i = 0; i < DIRECTORY_NUMS; i++) {
-//        if (tmpDirectory.item[i].inodeIndex == 0) break;
-//        if (strcmp(tmpDirectory.item[i].name, srcName.c_str()) == 0 && (judge(tmpDirectory.item[i].inodeIndex) ==
-//                                                                        judgeFileDir)) {
-//            location = i;
-//            break;
-//        }
-//    }
-//    if (location == -1) {
-//        if (judgeFileDir)
-//            std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory" << std::endl;
-//        else std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file" << std::endl;
-//        return std::make_pair(-1, -1);
-//    }
-//    return std::make_pair(tmpDirectoryDisk, location);
-//zhl work
     bool ok=true;   //能否找到目录
     std::string dirName;   //输出错误信息用
     //在此次直接调用cd函数来寻找
@@ -829,6 +776,84 @@ void UserInterface::goToRoot() {
     fileSystem->read(fileSystem->getRootLocation(), 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
     nowDiretoryDisk = iNode.bno;
     fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+}
+
+void UserInterface::open(std::string how, std::vector<std::string> src) {
+    bool hasR = false, hasW = false;
+    if (how.find('r') != std::string::npos) hasR = true;
+    if (how.find('w') != std::string::npos) hasW = true;
+    uint8_t rwResult = 0x00;//000000 00
+    uint8_t _r = 0x02;//r 000000 10
+    uint8_t _w = 0x01;//w 000000 01
+    if (hasR) rwResult |= _r;
+    if (hasW) rwResult |= _w;
+    auto findRes= findDisk(1,src);
+    if(findRes.first==-1){
+        std::cout << "open: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
+    tmpDirDisk = iNode.bno;
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    std::string fileName=tmpDir.item[findRes.second].name;
+    uint32_t fileNumber = tmpDir.item[findRes.second].inodeIndex;
+    //得到文件索引表i结点
+    fileSystem->read(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
+    int fileLocation=-1;
+    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
+        //已经被打开的文件不能再被打开
+        if(fileOpenTable[i].fileNumber==fileNumber){
+            std::cout << "open: " << RED << "failed" << RESET << ":file '" <<src.back()<<"' already opened"<< std::endl;
+            return;
+        }
+        if(fileOpenTable[i].fileNumber==0){
+            fileLocation=i;
+            break;
+        }
+    }
+    if(fileLocation==-1){
+        std::cout << "open: " << RED << "failed" << RESET << ":fileOpenTable full" << std::endl;
+        return;
+    }
+    strcpy(fileOpenTable[fileLocation].fileName,fileName.c_str());
+    fileOpenTable[fileLocation].fileNumber=fileNumber;
+    fileOpenTable[fileLocation].iNode=iNode;
+    fileOpenTable[fileLocation].cursor=0;
+    fileOpenTable[fileLocation].flag=rwResult;
+}
+
+void UserInterface::close(std::vector<std::string> src) {
+    auto findRes= findDisk(1,src);
+    if(findRes.first==-1){
+        std::cout << "close: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    INode iNode{};
+    fileSystem->read(inodeDisk, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
+    tmpDirDisk = iNode.bno;
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t fileNumber = tmpDir.item[findRes.second].inodeIndex;
+    int fileLocation=-1;
+    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
+        if(fileOpenTable[i].fileNumber==fileNumber){
+            fileLocation=i;
+            break;
+        }
+    }
+    if(fileLocation==-1){
+        std::cout << "close: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    fileOpenTable[fileLocation].fileNumber=0;
 }
 
 

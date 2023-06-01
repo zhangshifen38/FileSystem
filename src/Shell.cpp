@@ -58,6 +58,12 @@ void Shell::running_shell() {
             continue;
         }else if(cmd_1=="logout"){
             cmd_logout();
+        }else if(cmd_1=="open"){
+            cmd_open();
+            continue;
+        }else if(cmd_1=="close"){
+            cmd_close();
+            continue;
         }else{
             std::cout<<"undefined command!"<<std::endl;
             continue;
@@ -90,19 +96,6 @@ void Shell::cmd_cd() {
         return;
     }
     std::string cmd_src = cmd[1];
-//hz part
-//    std::vector<std::string> src = splitWithStl(cmd_src,"/");
-//    if(src[0]=="."){
-//        return;
-//    }
-//    if(src[0]==".."){
-//        if(!nowPath.empty()) nowPath.pop_back();
-//        userInterface->cd("..");
-//        return;
-//    }
-//    for(const auto& s:src) nowPath.push_back(s);
-//    userInterface->cd(src);
-//zhl part
     vector<string> src= split_path(cmd_src);
     bool ok= true;
     for(string& item:src){
@@ -280,13 +273,13 @@ void Shell::cmd_mv() {
         return;
     }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
         cout<<"mv: missing operand"<<endl;
         return;
     }
     std::string cmd_des = cmd[2];
-    std::vector<std::string> des = splitWithStl(cmd_des,"/");
+    std::vector<std::string> des = split_path(cmd_src);
     if(des.empty()){
         cout<<"mv: missing operand"<<endl;
         return;
@@ -300,7 +293,7 @@ void Shell::cmd_rename() {
         return;
     }
     std::string cmd_src = cmd[1];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
         cout<<"rename: missing operand"<<endl;
         return;
@@ -319,7 +312,7 @@ void Shell::cmd_chmod() {
         return;
     }
     std::string cmd_src = cmd[3];
-    std::vector<std::string> src = splitWithStl(cmd_src,"/");
+    std::vector<std::string> src = split_path(cmd_src);
     if(src.empty()){
         cout<<"chmod: missing operand"<<endl;
         return;
@@ -370,3 +363,35 @@ vector<string> Shell::split_path(string &path) {
     }
     return paths;
 }
+
+
+void Shell::cmd_open() {
+    if(cmd.size()!=3){
+        cout<<"open: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_src = cmd[2];
+    std::vector<std::string> src = split_path(cmd_src);
+    if(src.empty()){
+        cout<<"open: missing operand"<<endl;
+        return;
+    }
+    userInterface->open(cmd[1],src);
+}
+
+void Shell::cmd_close() {
+    if(cmd.size()!=2){
+        cout<<"close: missing operand"<<endl;
+        return;
+    }
+    std::string cmd_src = cmd[1];
+    std::vector<std::string> src = split_path(cmd_src);
+    if(src.empty()){
+        cout<<"close: missing operand"<<endl;
+        return;
+    }
+    userInterface->close(src);
+}
+
+
+
