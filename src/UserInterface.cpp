@@ -850,4 +850,34 @@ void UserInterface::close(std::vector<std::string> src) {
     fileOpenTable[fileLocation].fileNumber=0;
 }
 
+void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t offset) {
+    auto findRes= findDisk(1,src);
+    if(findRes.first==-1){
+        std::cout << "setCursor: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
+    int fileLocation=-1;
+    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
+        if(fileOpenTable[i].fileNumber==fileNumber){
+            fileLocation=i;
+            break;
+        }
+    }
+    if(fileLocation==-1){
+        std::cout << "setCursor: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
+        return;
+    }
+    if(code==1){
+        fileOpenTable[fileLocation].cursor+=offset;
+    }
+    if(code==2){
+        fileOpenTable[fileLocation].cursor=offset;
+    }
+}
+
 

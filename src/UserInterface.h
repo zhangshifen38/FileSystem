@@ -44,12 +44,13 @@ public:
 
     void mv(int code, std::vector<std::string> src, std::vector<std::string> des);//mv命令接口,移动文件或者目录
     // 数组存了被移动的文件或者目录的路径,code为方式码,1为文件,2为文件夹
-    void rename(int code, std::vector<std::string> src, std::string newName);//将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
+    void rename(int code, std::vector<std::string> src, std::string newName);//rename命令接口,将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
     void format();//format命令接口,格式化整个文件系统,并把当前目录设置为根目录
-    void chmod(std::string who, std::string how, std::vector<std::string> src);//对src指出的文件设置who(uoa)的how权限(rwx)
+    void chmod(std::string who, std::string how, std::vector<std::string> src);//chmod命令接口,对src指出的文件设置who(uoa)的how权限(rwx)
     //格式为chmod oau rwx src
-    void open(std::string how,std::vector<std::string> src);//对src指出的文件以how方式打开并设置文件打开表
-    void close(std::vector<std::string> src);//关闭src指出的文件并设置文件打开表
+    void open(std::string how,std::vector<std::string> src);//open命令接口,对src指出的文件以how方式打开并设置文件打开表
+    void close(std::vector<std::string> src);//close命令接口,关闭src指出的文件并设置文件打开表
+    void setCursor(int code,std::vector<std::string> src,uint32_t offset);//移动文件指针,code=1表示根据当前文件指针设置偏移,code=2表示从0开始设置偏移
 
     bool judge(uint32_t disk);//判断i结点指向的是目录还是文件,目录真,文件假
     int judge(std::vector<std::string> src);//判断src指向的是目录还是文件,文件1,目录2

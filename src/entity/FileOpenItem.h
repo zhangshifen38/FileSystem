@@ -20,7 +20,4 @@ public:
     uint32_t cursor;    //文件指针，指向当前所在位置
 };
 
-//open -r file.txt
-//close /usr/local/close.txt
-//-r 读 -w写 -rw -wr 读写
 #endif //FILESYSTEM_FILEOPENITEM_H
