@@ -798,10 +798,8 @@ void UserInterface::open(std::string how, std::vector<std::string> src) {
     uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
     INode iNode{};
     fileSystem->read(inodeDisk, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
-    tmpDirDisk = iNode.bno;
-    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     std::string fileName=tmpDir.item[findRes.second].name;
-    uint32_t fileNumber = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
     //得到文件索引表i结点
     fileSystem->read(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
     int fileLocation=-1;
@@ -837,11 +835,7 @@ void UserInterface::close(std::vector<std::string> src) {
     Directory tmpDir{};
     fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
-    INode iNode{};
-    fileSystem->read(inodeDisk, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
-    tmpDirDisk = iNode.bno;
-    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
-    uint32_t fileNumber = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
     int fileLocation=-1;
     for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
         if(fileOpenTable[i].fileNumber==fileNumber){
