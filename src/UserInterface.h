@@ -15,7 +15,7 @@
 #include "entity/FileIndex.h"
 #include "Tools.h"
 #include "vector"
-
+#include "entity/FileOpenItem.h"
 
 /*
  * @brief 为用户提供的接口，支持用户常用的功能
@@ -66,6 +66,8 @@ private:
     Directory directory;//当前目录
     uint32_t nowDiretoryDisk;//当前目录所在磁盘块号
     FileSystem *fileSystem;
+
+    FileOpenItem fileOpenTable[FILE_OPEN_MAX_NUM];     //文件打开表
 
     //非接口函数设为私有，不让上层调用
     std::pair<uint32_t, int>
