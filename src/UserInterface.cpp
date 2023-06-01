@@ -883,80 +883,95 @@ void UserInterface::updateDirNow() {
     fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
 }
 
-//void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
-//    auto findRes = findDisk(1, src);
-//    if (findRes.first == -1) {
-//        std::cout << "read: " << RED << "failed" << RESET << ":no such file" << std::endl;
-//        return;
-//    }
-//    uint32_t tmpDirDisk = findRes.first;
-//    Directory tmpDir{};
-//    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
-//    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
-//    uint32_t fileNumber = inodeDisk;
-//    int fileLocation = -1;
-//    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
-//        if (fileOpenTable[i].fileNumber == fileNumber) {
-//            fileLocation = i;
-//            break;
-//        }
-//    }
-//    if (fileLocation == -1) {
-//        std::cout << "read: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
-//        return;
-//    }
-//    FileIndex fileIndex{};
-//    fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
-//    //获取当前光标位置
-//    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
-//    //根据当前光标位置计算文件偏移了多少个索引表
-//    int fileIndexNums=nowCursor/(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
-//    //根据当前光标位置计算文件在最后一个索引表中的第一
-//    //下一个索引next数
-//    int nextNums=totalBlockIndex/BLOCK_SIZE_BYTE;
-//    //当前光标不在找到的文件索引表中,根据next找到当前光标所处的文件索引表
-//    while(nextNums>0){
-//        uint32_t nextBlock= fileIndex.next;
-//        fileSystem->read(nextBlock,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
-//        nextNums--;
-//    }
-//    //得到光标在索引表中所处的块序号
-//    int blockIndex=totalBlockIndex%BLOCK_SIZE_BYTE;
-//    uint32_t nowBlock=fileIndex.index[blockIndex];
-//    //得到在当前块的偏移量
-//    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
-//    //得到当前块剩余字节
-//    uint16_t resBlock=BLOCK_SIZE_BYTE-offset;
-//    //得到要读取的字节数共占多少个索引表
-//    int fileIndexNums=sz/(BLOCK_SIZE_BYTE*BLOCK_SIZE_BYTE);
-//    //得到在最后一个索引表要读取的字节数
-//    uint16_t sz_end=sz%(BLOCK_SIZE_BYTE*BLOCK_SIZE_BYTE);
-//    //如果要读取超过一个索引表
-//    while(fileIndexNums>0){
-//
-//    }
-//    //得到超出当前块的读取字节数
-//    uint16_t resByte=sz-resBlock;
-//    //已经读了的字节
-//    uint16_t readByte=0;
-//    if(resByte<=0){
-//        fileSystem->read(nowBlock,offset,buf,sz);
-//        readByte=sz;
-//        return;
-//    }
-//    //读了超过一个块
-//    if(resByte>0){
-//        fileSystem->read(nowBlock,offset,buf,resByte);
-//        readByte=resByte;
-//        int resBlocks=resByte/BLOCK_SIZE_BYTE;
-//        int resOffset=resByte%BLOCK_SIZE_BYTE;
-//        for(int i=1;i<=resBlock;i++){
-//            blockIndex++;
-//            fileSystem->read(fileIndex.index[blockIndex],0,buf+readByte,BLOCK_SIZE_BYTE);
-//        }
-//
-//    }
-//
-//}
+void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
+    auto findRes = findDisk(src);
+    if (findRes.first == -1) {
+        std::cout << "read: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            fileLocation = i;
+            break;
+        }
+    }
+    if (fileLocation == -1) {
+        std::cout << "read: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
+        return;
+    }
+    FileIndex fileIndexTable{};
+    fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    //获取当前光标位置
+    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
+    //根据当前光标位置计算光标偏移了多少个索引表
+    int fileIndexTableNums=nowCursor/(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    //根据当前光标位置计算光标在最后一个索引表中的第几项
+    int fileIndexNums=nowCursor%(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    //光标不在第一个索引表中,则找到所处索引表
+    while(fileIndexNums>0){
+        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileIndexNums--;
+    }
+    //得到光标所处的块
+    uint32_t cursorBlock=fileIndexTable.index[fileIndexNums];
+    //得到光标在当前块的偏移量
+    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
+    //得到当前块剩余字节
+    uint16_t resBlockSz=BLOCK_SIZE_BYTE-offset;
+    //得到超出当前块的读取字节数
+    uint16_t ResByte=sz-resBlockSz;
+    //已经读了的字节
+    uint16_t readByte=0;
+
+
+    //先把当前块读完,如果需要读的字节数小于等于当前块剩余字节数,读完返回
+    if(ResByte<=0){
+        fileSystem->read(cursorBlock,offset,buf,sz);
+        readByte=sz;
+        buf+=readByte;
+        fileOpenTable[fileLocation].cursor+=readByte;
+        return;
+    }
+    fileSystem->read(cursorBlock,offset,buf,resBlockSz);
+    readByte=resBlockSz;
+    buf+=readByte;
+    fileOpenTable[fileLocation].cursor+=readByte;
+
+
+    //计算剩余需要读取字节数占多少个块
+    int blocksToRead=ResByte/BLOCK_SIZE_BYTE;
+    //计算剩余需要读取字节数在最后一个块中的偏移量
+    int lastBlockToReadOffset=ResByte%BLOCK_SIZE_BYTE;
+
+
+    //把所有需要读取的完整块读完,如果当前索引表到末尾了还没读完就进入下一个索引表
+    while(blocksToRead--){
+        fileIndexNums++;
+        if(fileIndexNums==FILE_INDEX_SIZE){
+            uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+            fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+            fileIndexNums=0;
+        }
+        fileSystem->read(fileIndexTable.index[fileIndexNums],0,buf,BLOCK_SIZE_BYTE);
+        buf+=BLOCK_SIZE_BYTE;
+        fileOpenTable[fileLocation].cursor+=BLOCK_SIZE_BYTE;
+    }
+
+    //把最后一个不完整的块也读了
+    fileIndexNums++;
+    if(fileIndexNums==FILE_INDEX_SIZE){
+        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileIndexNums=0;
+    }
+    fileSystem->read(fileIndexTable.index[fileIndexNums],0,buf,lastBlockToReadOffset);
+}
 
 
