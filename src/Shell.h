@@ -64,6 +64,9 @@ public:
     void init();            //命令行初始化
     void cmd_login();       //登录
     void cmd_logout();      //退出
+    void cmd_read();        //读取
+    void cmd_write();       //写入
+    void cmd_seek();        //文件指针修改
     void cmd_zedit();       //简单文本编辑器
     vector<string> split_path(string& path);
 
@@ -72,6 +75,7 @@ public:
     void setCmd(const std::vector<std::string> &cmd);
 
     void outPutPrefix();
+    ~Shell();
 
 };
 

@@ -19,7 +19,6 @@ UserInterface::UserInterface() {
 
 UserInterface::~UserInterface() {
     FileSystem::revokeInstance();
-    UserInterface::revokeInstance();
 }
 
 void UserInterface::revokeInstance() {
@@ -53,9 +52,9 @@ void UserInterface::initialize() {
     //将根目录信息写入当前目录
     fileSystem->read(rootInode.bno, 0, reinterpret_cast<char *> (&directory), sizeof(directory));
     nowDiretoryDisk = rootInode.bno;
-    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
-        fileOpenTable[i].fileNumber=0;
-        fileOpenTable[i].cursor=0;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        fileOpenTable[i].fileNumber = 0;
+        fileOpenTable[i].cursor = 0;
     }
 }
 
@@ -850,6 +849,13 @@ void UserInterface::close(std::vector<std::string> src) {
         std::cout << "close: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
         return;
     }
+
+    if ((fileOpenTable[fileLocation].flag & (0x04)) != 0) {
+        fileSystem->write(fileOpenTable[fileLocation].fileNumber, 0,
+                          reinterpret_cast<char *>(&fileOpenTable[fileLocation].iNode),
+                          sizeof(fileOpenTable[fileLocation].iNode));
+    }
+
     fileOpenTable[fileLocation].fileNumber = 0;
 }
 
@@ -877,14 +883,18 @@ void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t o
     }
     if (code == 1) {
         fileOpenTable[fileLocation].cursor += offset;
+        fileOpenTable[fileLocation].cursor = std::min(fileOpenTable[fileLocation].cursor,
+                                                      fileOpenTable[fileLocation].iNode.capacity);
     }
     if (code == 2) {
         fileOpenTable[fileLocation].cursor = offset;
+        fileOpenTable[fileLocation].cursor = std::min(fileOpenTable[fileLocation].cursor,
+                                                      fileOpenTable[fileLocation].iNode.capacity);
     }
 }
 
 void UserInterface::updateDirNow() {
-    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+    fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
 }
 
 void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
@@ -910,78 +920,87 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
         return;
     }
 
+    auto &capacity = fileOpenTable[fileLocation].iNode.capacity;
+    auto &cursor = fileOpenTable[fileLocation].cursor;
+    if (cursor + sz > capacity) {
+        sz = capacity - cursor;
+    }
+    //设置字符串结尾
+    buf[sz] = '\0';
 
     FileIndex fileIndexTable{};
-    fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    fileSystem->read(fileOpenTable[fileLocation].iNode.bno, 0, reinterpret_cast<char *>(&fileIndexTable),
+                     sizeof(fileIndexTable));
     //获取当前光标位置
-    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
+    uint32_t nowCursor = fileOpenTable[fileLocation].cursor;
     //根据当前光标位置计算光标偏移了多少个索引表
-    int fileIndexTableNums=nowCursor/(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    int fileIndexTableNums = nowCursor / (FILE_INDEX_SIZE * BLOCK_SIZE_BYTE);
     //根据当前光标位置计算光标在最后一个索引表中的第几项
-    int fileIndexNums=nowCursor%(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    int fileIndexNums = (nowCursor % (FILE_INDEX_SIZE * BLOCK_SIZE_BYTE)) / BLOCK_SIZE_BYTE;
     //光标不在第一个索引表中,则找到所处索引表
-    while(fileIndexNums>0){
-        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
-        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    while (fileIndexTableNums > 0) {
+        uint32_t nextFileIndexTableBlock = fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
         fileIndexNums--;
     }
     //得到光标所处的块
-    uint32_t cursorBlock=fileIndexTable.index[fileIndexNums];
+    uint32_t cursorBlock = fileIndexTable.index[fileIndexNums];
     //得到光标在当前块的偏移量
-    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
+    uint16_t offset = nowCursor % BLOCK_SIZE_BYTE;
     //得到当前块剩余字节
-    uint16_t resBlockSz=BLOCK_SIZE_BYTE-offset;
+    uint16_t resBlockSz = BLOCK_SIZE_BYTE - offset;
 
     //已经读了的字节
-    uint16_t readByte=0;
+    uint16_t readByte = 0;
 
 
     //先把当前块读完,如果需要读的字节数小于等于当前块剩余字节数,读完返回
-    if(sz<=resBlockSz){
-        fileSystem->read(cursorBlock,offset,buf,sz);
-        readByte=sz;
-        buf+=readByte;
-        fileOpenTable[fileLocation].cursor+=readByte;
+    if (sz <= resBlockSz) {
+        fileSystem->read(cursorBlock, offset, buf, sz);
+        readByte = sz;
+        buf += readByte;
+        fileOpenTable[fileLocation].cursor += readByte;
         return;
     }
-    fileSystem->read(cursorBlock,offset,buf,resBlockSz);
-    readByte=resBlockSz;
-    buf+=readByte;
-    fileOpenTable[fileLocation].cursor+=readByte;
+    fileSystem->read(cursorBlock, offset, buf, resBlockSz);
+    readByte = resBlockSz;
+    buf += readByte;
+    fileOpenTable[fileLocation].cursor += readByte;
     //得到超出当前块的读取字节数
-    uint16_t ResByte=sz-resBlockSz;
+    uint16_t ResByte = sz - resBlockSz;
 
     //计算剩余需要读取字节数占多少个块
-    int blocksToRead=ResByte/BLOCK_SIZE_BYTE;
+    int blocksToRead = ResByte / BLOCK_SIZE_BYTE;
     //计算剩余需要读取字节数在最后一个块中的偏移量
-    int lastBlockToReadOffset=ResByte%BLOCK_SIZE_BYTE;
+    int lastBlockToReadOffset = ResByte % BLOCK_SIZE_BYTE;
 
 
     //把所有需要读取的完整块读完,如果当前索引表到末尾了还没读完就进入下一个索引表
-    while(blocksToRead--){
+    while (blocksToRead--) {
         fileIndexNums++;
-        if(fileIndexNums==FILE_INDEX_SIZE){
-            uint32_t nextFileIndexTableBlock= fileIndexTable.next;
+        if (fileIndexNums == FILE_INDEX_SIZE) {
+            uint32_t nextFileIndexTableBlock = fileIndexTable.next;
             //读入新索引表
-            fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
-            fileIndexNums=0;
+            fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable),
+                             sizeof(fileIndexTable));
+            fileIndexNums = 0;
         }
-        fileSystem->read(fileIndexTable.index[fileIndexNums],0,buf,BLOCK_SIZE_BYTE);
-        buf+=BLOCK_SIZE_BYTE;
-        fileOpenTable[fileLocation].cursor+=BLOCK_SIZE_BYTE;
+        fileSystem->read(fileIndexTable.index[fileIndexNums], 0, buf, BLOCK_SIZE_BYTE);
+        buf += BLOCK_SIZE_BYTE;
+        fileOpenTable[fileLocation].cursor += BLOCK_SIZE_BYTE;
     }
 
     //把最后一个不完整的块也读了
     fileIndexNums++;
-    if(fileIndexNums==FILE_INDEX_SIZE){
-        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
-        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
-        fileIndexNums=0;
+    if (fileIndexNums == FILE_INDEX_SIZE) {
+        uint32_t nextFileIndexTableBlock = fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
+        fileIndexNums = 0;
     }
-    fileSystem->read(fileIndexTable.index[fileIndexNums],0,buf,lastBlockToReadOffset);
+    fileSystem->read(fileIndexTable.index[fileIndexNums], 0, buf, lastBlockToReadOffset);
 }
 
-void UserInterface::write(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
+void UserInterface::write(uint8_t uid, std::vector<std::string> src, const char *buf, uint16_t sz) {
     auto findRes = findDisk(std::move(src));
     if (findRes.first == -1) {
         std::cout << "write: " << RED << "failed" << RESET << ":no such file" << std::endl;
@@ -1004,97 +1023,110 @@ void UserInterface::write(uint8_t uid, std::vector<std::string> src, char *buf, 
         return;
     }
 
+    auto &capacity = fileOpenTable[fileLocation].iNode.capacity;
+    auto &cursor = fileOpenTable[fileLocation].cursor;
+    if (cursor + sz > capacity) {
+        capacity = cursor + sz;
+        fileOpenTable[fileLocation].flag |= (0x04);
+    }
+
     FileIndex fileIndexTable{};
-    uint32_t fileIndexTableBlock=fileOpenTable[fileLocation].iNode.bno;
-    fileSystem->read(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    uint32_t fileIndexTableBlock = fileOpenTable[fileLocation].iNode.bno;
+    fileSystem->read(fileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
     //获取当前光标位置
-    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
+    uint32_t nowCursor = fileOpenTable[fileLocation].cursor;
     //根据当前光标位置计算光标偏移了多少个索引表
-    int fileIndexTableNums=nowCursor/(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
-    //根据当前光标位置计算光标在最后一个索引表中的第几项
-    int fileIndexNums=nowCursor%(FILE_INDEX_SIZE*BLOCK_SIZE_BYTE);
+    int fileIndexTableNums = nowCursor / (FILE_INDEX_SIZE * BLOCK_SIZE_BYTE);
+    //根据当前光标位置计算光标在最后一个索引表中的第几个磁盘块
+    int fileIndexNums = (nowCursor % (FILE_INDEX_SIZE * BLOCK_SIZE_BYTE)) / BLOCK_SIZE_BYTE;
+
     //光标不在第一个索引表中,则找到所处索引表
-    while(fileIndexNums>0){
-        uint32_t nextFileIndexTableBlock= fileIndexTable.next;
-        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+    while (fileIndexTableNums > 0) {
+        uint32_t nextFileIndexTableBlock = fileIndexTable.next;
+        fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
         fileIndexNums--;
     }
     //得到光标所处的块
-    uint32_t cursorBlock=fileIndexTable.index[fileIndexNums];
+    uint32_t cursorBlock = fileIndexTable.index[fileIndexNums];
     //得到光标在当前块的偏移量
-    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
+    uint16_t offset = nowCursor % BLOCK_SIZE_BYTE;
     //得到当前块剩余字节
-    uint16_t resBlockSz=BLOCK_SIZE_BYTE-offset;
+    uint16_t resBlockSz = BLOCK_SIZE_BYTE - offset;
 
     //已经写入的字节
-    uint16_t writeByte=0;
+    uint16_t writeByte = 0;
 
     //先把当前块写完,如果需要写入的字节数小于等于当前块剩余字节数,写完返回
-    if(sz<=resBlockSz){
-        fileSystem->write(cursorBlock,offset,buf,sz);
-        writeByte=sz;
-        buf+=writeByte;
-        fileOpenTable[fileLocation].cursor+=writeByte;
+    if (sz <= resBlockSz) {
+        fileSystem->write(cursorBlock, offset, buf, sz);
+        writeByte = sz;
+        buf += writeByte;
+        fileOpenTable[fileLocation].cursor += writeByte;
         return;
     }
-    fileSystem->write(cursorBlock,offset,buf,resBlockSz);
-    writeByte=resBlockSz;
-    buf+=writeByte;
-    fileOpenTable[fileLocation].cursor+=writeByte;
+    fileSystem->write(cursorBlock, offset, buf, resBlockSz);
+    writeByte = resBlockSz;
+    buf += writeByte;
+    fileOpenTable[fileLocation].cursor += writeByte;
 
     //得到超出当前块的写入字节数
-    uint16_t ResByte=sz-resBlockSz;
+    uint16_t ResByte = sz - resBlockSz;
     //计算剩余需要写入字节数占多少个块
-    int blocksToWrite=ResByte/BLOCK_SIZE_BYTE;
+    int blocksToWrite = ResByte / BLOCK_SIZE_BYTE;
     //计算剩余需要写入字节数在最后一个块中的偏移量
-    int lastBlockToWriteOffset=ResByte%BLOCK_SIZE_BYTE;
+    int lastBlockToWriteOffset = ResByte % BLOCK_SIZE_BYTE;
 
 
     //把所有需要写入的完整块写完,如果当前索引表到末尾了还没写完,就新建索引表
-    while(blocksToWrite--){
+    while (blocksToWrite--) {
         fileIndexNums++;
-        if(fileIndexNums==FILE_INDEX_SIZE){
+        if (fileIndexNums == FILE_INDEX_SIZE) {
             //先给新索引表分配空间
-            uint32_t nextFileIndexTableBlock= fileSystem->blockAllocate();
+            uint32_t nextFileIndexTableBlock = fileSystem->blockAllocate();
             //记录并更新新索引表位置
-            fileIndexTable.next=nextFileIndexTableBlock;
-            fileSystem->write(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+            fileIndexTable.next = nextFileIndexTableBlock;
+            fileSystem->write(fileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable),
+                              sizeof(fileIndexTable));
             fileSystem->update();
             //进入新索引表
-            fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
-            fileIndexNums=0;
+            fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable),
+                             sizeof(fileIndexTable));
+            fileIndexNums = 0;
         }
         //如果该索引项还没有分配磁盘块,就先分配磁盘块
-        if(fileIndexTable.index[fileIndexNums]==0){
-            uint32_t newBlock=fileSystem->blockAllocate();
-            fileIndexTable.index[fileIndexNums]=newBlock;
+        if (fileIndexTable.index[fileIndexNums] == 0) {
+            uint32_t newBlock = fileSystem->blockAllocate();
+            fileIndexTable.index[fileIndexNums] = newBlock;
             fileSystem->update();
         }
-        fileSystem->write(fileIndexTable.index[fileIndexNums],0,buf,BLOCK_SIZE_BYTE);
-        buf+=BLOCK_SIZE_BYTE;
-        fileOpenTable[fileLocation].cursor+=BLOCK_SIZE_BYTE;
+        fileSystem->write(fileIndexTable.index[fileIndexNums], 0, buf, BLOCK_SIZE_BYTE);
+        buf += BLOCK_SIZE_BYTE;
+        fileOpenTable[fileLocation].cursor += BLOCK_SIZE_BYTE;
     }
 
     //把最后一个不完整的块也写了
     fileIndexNums++;
-    if(fileIndexNums==FILE_INDEX_SIZE){
+    if (fileIndexNums == FILE_INDEX_SIZE) {
         //先给新索引表分配空间
-        uint32_t nextFileIndexTableBlock= fileSystem->blockAllocate();
+        uint32_t nextFileIndexTableBlock = fileSystem->blockAllocate();
         //记录并更新新索引表位置
-        fileIndexTable.next=nextFileIndexTableBlock;
-        fileSystem->write(fileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
+        fileIndexTable.next = nextFileIndexTableBlock;
+        fileSystem->write(fileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
         fileSystem->update();
         //进入新索引表
-        fileSystem->read(nextFileIndexTableBlock,0,reinterpret_cast<char*>(&fileIndexTable),sizeof (fileIndexTable));
-        fileIndexNums=0;
+        fileSystem->read(nextFileIndexTableBlock, 0, reinterpret_cast<char *>(&fileIndexTable), sizeof(fileIndexTable));
+        fileIndexNums = 0;
     }
     //如果该索引项还没有分配磁盘块,就先分配磁盘块
-    if(fileIndexTable.index[fileIndexNums]==0){
-        uint32_t newBlock=fileSystem->blockAllocate();
-        fileIndexTable.index[fileIndexNums]=newBlock;
+    if (fileIndexTable.index[fileIndexNums] == 0) {
+        uint32_t newBlock = fileSystem->blockAllocate();
+        fileIndexTable.index[fileIndexNums] = newBlock;
         fileSystem->update();
     }
-    fileSystem->write(fileIndexTable.index[fileIndexNums],0,buf,lastBlockToWriteOffset);
+    fileSystem->write(fileIndexTable.index[fileIndexNums], 0, buf, lastBlockToWriteOffset);
+
+    fileOpenTable[fileLocation].flag |= (0x04);
+
 }
 
 void UserInterface::cp(std::vector<std::string> src, std::vector<std::string> des) {
@@ -1155,4 +1187,16 @@ void UserInterface::cp(std::vector<std::string> src, std::vector<std::string> de
     fileSystem->write(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     fileSystem->update();
 
+}
+
+void UserInterface::logOut() {
+    //关闭所有未关闭的文件
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; ++i) {
+        if (fileOpenTable[i].fileNumber != 0 && 0 != (fileOpenTable[i].flag & 0x04)) {
+            fileSystem->write(fileOpenTable[i].fileNumber, 0, reinterpret_cast<char *>(&fileOpenTable[i].iNode),
+                              sizeof(fileOpenTable[i].iNode));
+        }
+    }
+    //更新信息
+    fileSystem->update();
 }

@@ -51,7 +51,7 @@ public:
     void close(std::vector<std::string> src);//close命令接口,关闭src指出的文件并设置文件打开表
     void setCursor(int code,std::vector<std::string> src,uint32_t offset);//移动文件指针,code=1表示根据当前文件指针设置偏移,code=2表示从0开始设置偏移
     void read(uint8_t uid,std::vector<std::string> src, char* buf,uint16_t sz);//将src指出的文件读sz个字节到buf数组中
-    void write(uint8_t uid,std::vector<std::string> src, char* buf,uint16_t sz);//将buf数组的数据写入到src指出的文件中
+    void write(uint8_t uid, std::vector<std::string> src, const char *buf, uint16_t sz);//将buf数组的数据写入到src指出的文件中
     void updateDirNow();//更新当前目录信息
     void cp(std::vector<std::string> src, std::vector<std::string> des);//cp命令接口,复制文件或者目录
 
@@ -63,6 +63,7 @@ public:
 
     //zhl part
     uint8_t userVerify(std::string &username, std::string &password);        //用户鉴别，鉴别成功返回uid，否则返回0
+    void logOut();      //一个用户退出后的处理
     void getUser(uint8_t uid, User *user);                    //根据uid提取用户信息
     void goToRoot();        //进入根目录
 

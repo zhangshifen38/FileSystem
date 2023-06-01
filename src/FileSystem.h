@@ -30,7 +30,7 @@ public:
     void blockFree(uint32_t bno);       //回收磁盘块
 
     void read(uint32_t bno, uint16_t offset, char *buf, uint16_t sz);    //从磁盘块bno偏移offset开始读sz字节到缓冲区buf
-    void write(uint32_t bno, uint16_t offset, char *buf, uint16_t sz);   //从磁盘块bno偏移offset开始覆盖写入缓冲区buf开始sz字节
+    void write(uint32_t bno, uint16_t offset, const char *buf, uint16_t sz);   //从磁盘块bno偏移offset开始覆盖写入缓冲区buf开始sz字节
     void readNext(char *buf, uint16_t sz);      //从当前位置继续读取数据
     void writeNext(char *buf, uint16_t sz);     //从当前位置继续写入数据
     void locale(uint32_t bno, uint16_t offset);     //将读写头移动到bno磁盘块的offset偏移

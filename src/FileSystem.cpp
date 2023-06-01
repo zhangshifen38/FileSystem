@@ -193,7 +193,7 @@ void FileSystem::read(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
     disk->read(buf, sz);
 }
 
-void FileSystem::write(uint32_t bno, uint16_t offset, char *buf, uint16_t sz) {
+void FileSystem::write(uint32_t bno, uint16_t offset, const char *buf, uint16_t sz) {
     uint32_t base = bno * blockSize;
     disk->seekStart(base + offset);
     disk->write(buf, sz);

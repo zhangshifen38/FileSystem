@@ -76,7 +76,7 @@ void DiskDriver::read(char *buf, uint32_t sz) {
     disk.clear();
 }
 
-void DiskDriver::write(char *buf, uint32_t sz) {
+void DiskDriver::write(const char *buf, uint32_t sz) {
     disk.write(buf, sz);
     disk.flush();
     disk.clear();

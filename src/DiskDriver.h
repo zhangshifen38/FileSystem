@@ -24,7 +24,7 @@ public:
     void seekStart(uint32_t sz);            //将读写头移动到距起始sz字节处
     void seekCurrent(uint32_t sz);          //将读写头移动到距当前位置sz字节处
     void read(char* buf, uint32_t sz);      //从当前位置读出sz字节到buf缓冲区
-    void write(char* buf, uint32_t sz);     //从当前位置将sz字节写入文件
+    void write(const char *buf, uint32_t sz);     //从当前位置将sz字节写入文件
     ~DiskDriver();
 private:
     static DiskDriver *instance;
