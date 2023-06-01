@@ -24,6 +24,9 @@ public:
     User users[8];                      //用户列表，最多为8
     uint8_t trustMatrix[8][8];          //信赖者矩阵，trustMatrix[i][j]=1代表对i而言j可信赖
 
+    uint32_t fileNumber;                //文件总数
+    uint32_t directoryNumber;           //目录总数
+
     uint8_t flag;                       //超级块修改标记
 };
 
