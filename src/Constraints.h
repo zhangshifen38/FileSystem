@@ -9,6 +9,8 @@
 #define DIRECTORY_ITEM_SIZE 128
 //块大小，4096 Byte
 #define BLOCK_SIZE 32768
+//块大小，4096 Byte
+#define BLOCK_SIZE_BYTE (BLOCK_SIZE/8)
 //文件名最大长度
 #define FILE_NAME_LENGTH ((DIRECTORY_ITEM_SIZE - 32) / (8 * sizeof(char)))
 //目录项总项数

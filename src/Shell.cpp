@@ -279,7 +279,7 @@ void Shell::cmd_mv() {
         return;
     }
     std::string cmd_des = cmd[2];
-    std::vector<std::string> des = split_path(cmd_src);
+    std::vector<std::string> des = split_path(cmd_des);
     if(des.empty()){
         cout<<"mv: missing operand"<<endl;
         return;

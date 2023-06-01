@@ -465,32 +465,32 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     std::string srcName = src.back();
     src.pop_back();
     uint32_t tmpDirectoryDisk = nowDiretoryDisk;
-    bool ok=true;   //能否找到目录
+    bool ok = true;   //能否找到目录
     std::string dirName;   //输出错误信息用
     //在此次直接调用cd函数来寻找
-    for(std::string& item:src){
-        if(item==""){
+    for (std::string &item: src) {
+        if (item == "") {
             //空，直接寻找根目录
             goToRoot();
-        }else if(item==".."){
+        } else if (item == "..") {
             //上级
-            ok=cd(item);
-        }else if(item=="."){
+            ok = cd(item);
+        } else if (item == ".") {
             //当前
             continue;
-        } else{
-            ok=cd(item);
+        } else {
+            ok = cd(item);
         }
-        if(!ok){
-            dirName=item;   //记录哪一步出错了
+        if (!ok) {
+            dirName = item;   //记录哪一步出错了
             break;
         }
     }
-    if(!ok){
+    if (!ok) {
         std::cout << RED << "failed: " << RESET << "'" << dirName << "' No such directory" << std::endl;
         //还原现场
-        nowDiretoryDisk=tmpDirectoryDisk;
-        fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
+        nowDiretoryDisk = tmpDirectoryDisk;
+        fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
         return std::make_pair(-1, -1);
     }
     int location = -1;
@@ -498,7 +498,7 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     for (int i = 0; i < DIRECTORY_NUMS; i++) {
         if (directory.item[i].inodeIndex == 0) break;
         if (strcmp(directory.item[i].name, srcName.c_str()) == 0 && (judge(directory.item[i].inodeIndex) ==
-                                                                        judgeFileDir)) {
+                                                                     judgeFileDir)) {
             location = i;
             break;
         }
@@ -508,15 +508,15 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
             std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory" << std::endl;
         else std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file" << std::endl;
         //还原现场
-        nowDiretoryDisk=tmpDirectoryDisk;
-        fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
+        nowDiretoryDisk = tmpDirectoryDisk;
+        fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
         return std::make_pair(-1, -1);
     }
     //记录下需要返回的数据
-    std::pair<uint32_t ,int> ret=std::make_pair(nowDiretoryDisk, location);
+    std::pair<uint32_t, int> ret = std::make_pair(nowDiretoryDisk, location);
     //还原现场
-    nowDiretoryDisk=tmpDirectoryDisk;
-    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char *>(&directory),sizeof directory);
+    nowDiretoryDisk = tmpDirectoryDisk;
+    fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
     return ret;
 }
 
@@ -787,8 +787,8 @@ void UserInterface::open(std::string how, std::vector<std::string> src) {
     uint8_t _w = 0x01;//w 000000 01
     if (hasR) rwResult |= _r;
     if (hasW) rwResult |= _w;
-    auto findRes= findDisk(1,src);
-    if(findRes.first==-1){
+    auto findRes = findDisk(1, src);
+    if (findRes.first == -1) {
         std::cout << "open: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
     }
@@ -798,36 +798,37 @@ void UserInterface::open(std::string how, std::vector<std::string> src) {
     uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
     INode iNode{};
     fileSystem->read(inodeDisk, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
-    std::string fileName=tmpDir.item[findRes.second].name;
+    std::string fileName = tmpDir.item[findRes.second].name;
     uint32_t fileNumber = inodeDisk;
     //得到文件索引表i结点
-    fileSystem->read(tmpDir.item[findRes.second].inodeIndex,0,reinterpret_cast<char*>(&iNode),sizeof (iNode));
-    int fileLocation=-1;
-    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
+    fileSystem->read(tmpDir.item[findRes.second].inodeIndex, 0, reinterpret_cast<char *>(&iNode), sizeof(iNode));
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
         //已经被打开的文件不能再被打开
-        if(fileOpenTable[i].fileNumber==fileNumber){
-            std::cout << "open: " << RED << "failed" << RESET << ":file '" <<src.back()<<"' already opened"<< std::endl;
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            std::cout << "open: " << RED << "failed" << RESET << ":file '" << src.back() << "' already opened"
+                      << std::endl;
             return;
         }
-        if(fileOpenTable[i].fileNumber==0){
-            fileLocation=i;
+        if (fileOpenTable[i].fileNumber == 0) {
+            fileLocation = i;
             break;
         }
     }
-    if(fileLocation==-1){
+    if (fileLocation == -1) {
         std::cout << "open: " << RED << "failed" << RESET << ":fileOpenTable full" << std::endl;
         return;
     }
-    strcpy(fileOpenTable[fileLocation].fileName,fileName.c_str());
-    fileOpenTable[fileLocation].fileNumber=fileNumber;
-    fileOpenTable[fileLocation].iNode=iNode;
-    fileOpenTable[fileLocation].cursor=0;
-    fileOpenTable[fileLocation].flag=rwResult;
+    strcpy(fileOpenTable[fileLocation].fileName, fileName.c_str());
+    fileOpenTable[fileLocation].fileNumber = fileNumber;
+    fileOpenTable[fileLocation].iNode = iNode;
+    fileOpenTable[fileLocation].cursor = 0;
+    fileOpenTable[fileLocation].flag = rwResult;
 }
 
 void UserInterface::close(std::vector<std::string> src) {
-    auto findRes= findDisk(1,src);
-    if(findRes.first==-1){
+    auto findRes = findDisk(1, src);
+    if (findRes.first == -1) {
         std::cout << "close: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
     }
@@ -836,23 +837,23 @@ void UserInterface::close(std::vector<std::string> src) {
     fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
     uint32_t fileNumber = inodeDisk;
-    int fileLocation=-1;
-    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
-        if(fileOpenTable[i].fileNumber==fileNumber){
-            fileLocation=i;
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            fileLocation = i;
             break;
         }
     }
-    if(fileLocation==-1){
-        std::cout << "close: " << RED << "failed" << RESET << ":no such file" << std::endl;
+    if (fileLocation == -1) {
+        std::cout << "close: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
         return;
     }
-    fileOpenTable[fileLocation].fileNumber=0;
+    fileOpenTable[fileLocation].fileNumber = 0;
 }
 
 void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t offset) {
-    auto findRes= findDisk(1,src);
-    if(findRes.first==-1){
+    auto findRes = findDisk(1, src);
+    if (findRes.first == -1) {
         std::cout << "setCursor: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
     }
@@ -861,23 +862,98 @@ void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t o
     fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
     uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
     uint32_t fileNumber = inodeDisk;
-    int fileLocation=-1;
-    for(int i=0;i<FILE_OPEN_MAX_NUM;i++){
-        if(fileOpenTable[i].fileNumber==fileNumber){
-            fileLocation=i;
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            fileLocation = i;
             break;
         }
     }
-    if(fileLocation==-1){
+    if (fileLocation == -1) {
         std::cout << "setCursor: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
         return;
     }
-    if(code==1){
-        fileOpenTable[fileLocation].cursor+=offset;
+    if (code == 1) {
+        fileOpenTable[fileLocation].cursor += offset;
     }
-    if(code==2){
-        fileOpenTable[fileLocation].cursor=offset;
+    if (code == 2) {
+        fileOpenTable[fileLocation].cursor = offset;
     }
+}
+
+void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
+    auto findRes = findDisk(1, src);
+    if (findRes.first == -1) {
+        std::cout << "read: " << RED << "failed" << RESET << ":no such file" << std::endl;
+        return;
+    }
+    uint32_t tmpDirDisk = findRes.first;
+    Directory tmpDir{};
+    fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
+    uint32_t inodeDisk = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t fileNumber = inodeDisk;
+    int fileLocation = -1;
+    for (int i = 0; i < FILE_OPEN_MAX_NUM; i++) {
+        if (fileOpenTable[i].fileNumber == fileNumber) {
+            fileLocation = i;
+            break;
+        }
+    }
+    if (fileLocation == -1) {
+        std::cout << "read: " << RED << "failed" << RESET << ":no such file opened" << std::endl;
+        return;
+    }
+    FileIndex fileIndex{};
+    fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
+    //获取当前光标位置
+    uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
+    //根据当前光标位置计算文件当前块
+    int totalBlockIndex=nowCursor/BLOCK_SIZE_BYTE;
+    //下一个索引next数
+    int nextNums=totalBlockIndex/BLOCK_SIZE_BYTE;
+    //当前光标不在找到的文件索引表中,根据next找到当前光标所处的文件索引表
+    while(nextNums>0){
+        uint32_t nextBlock= fileIndex.next;
+        fileSystem->read(nextBlock,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
+        nextNums--;
+    }
+    //得到光标在索引表中所处的块序号
+    int blockIndex=totalBlockIndex%BLOCK_SIZE_BYTE;
+    uint32_t nowBlock=fileIndex.index[blockIndex];
+    //得到在当前块的偏移量
+    uint16_t offset=nowCursor%BLOCK_SIZE_BYTE;
+    //得到当前块剩余字节
+    uint16_t resBlock=BLOCK_SIZE_BYTE-offset;
+    //得到要读取的字节数共占多少个索引表
+    int fileIndexNums=sz/(BLOCK_SIZE_BYTE*BLOCK_SIZE_BYTE);
+    //得到在最后一个索引表要读取的字节数
+    uint16_t sz_end=sz%(BLOCK_SIZE_BYTE*BLOCK_SIZE_BYTE);
+    //如果要读取超过一个索引表
+    while(fileIndexNums>0){
+
+    }
+    //得到超出当前块的读取字节数
+    uint16_t resByte=sz-resBlock;
+    //已经读了的字节
+    uint16_t readByte=0;
+    if(resByte<=0){
+        fileSystem->read(nowBlock,offset,buf,sz);
+        readByte=sz;
+        return;
+    }
+    //读了超过一个块
+    if(resByte>0){
+        fileSystem->read(nowBlock,offset,buf,resByte);
+        readByte=resByte;
+        int resBlocks=resByte/BLOCK_SIZE_BYTE;
+        int resOffset=resByte%BLOCK_SIZE_BYTE;
+        for(int i=1;i<=resBlock;i++){
+            blockIndex++;
+            fileSystem->read(fileIndex.index[blockIndex],0,buf+readByte,BLOCK_SIZE_BYTE);
+        }
+
+    }
+
 }
 
 
