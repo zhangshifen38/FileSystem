@@ -368,6 +368,8 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
 
     //被移动的文件或者目录的i结点所在磁盘块号
     uint32_t srcInodeIndex = 0;
+    Directory tmpDirSrc{};
+    uint32_t tmpDirDiskSrc;
     switch (code) {
         //移动文件
         case 1: {
@@ -377,20 +379,19 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
                 std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
                 return;
             }
-            Directory tmpDir{};
-            uint32_t tmpDirDisk = findRes.first;
-            fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
-            srcInodeIndex = tmpDir.item[findRes.second].inodeIndex;
-            //保存当前目录,设置当前目录为被移动的文件所在的目录
-            std::swap(directory, tmpDir);
-            std::swap(nowDiretoryDisk, tmpDirDisk);
-            //更新被移动的文件所在的目录
-            wholeDirItemsMove(findRes.second);
-            //将新的目录项写入磁盘
-            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
-            fileSystem->update();
-            std::swap(directory, tmpDir);
-            std::swap(nowDiretoryDisk, tmpDirDisk);
+            tmpDirDiskSrc = findRes.first;
+            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+            srcInodeIndex = tmpDirSrc.item[findRes.second].inodeIndex;
+//            //保存当前目录,设置当前目录为被移动的文件所在的目录
+//            std::swap(directory, tmpDir);
+//            std::swap(nowDiretoryDisk, tmpDirDisk);
+//            //更新被移动的文件所在的目录
+//            wholeDirItemsMove(findRes.second);
+//            //将新的目录项写入磁盘
+//            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+//            fileSystem->update();
+//            std::swap(directory, tmpDir);
+//            std::swap(nowDiretoryDisk, tmpDirDisk);
         }
             break;
             //移动目录
@@ -401,20 +402,19 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
                 std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
                 return;
             }
-            Directory tmpDir{};
-            uint32_t tmpDirDisk = findRes.first;
-            fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
-            srcInodeIndex = tmpDir.item[findRes.second].inodeIndex;
-            //保存当前目录,设置当前目录为被移动的目录所在的目录
-            std::swap(directory, tmpDir);
-            std::swap(nowDiretoryDisk, tmpDirDisk);
-            //更新被移动的目录所在的目录
-            wholeDirItemsMove(findRes.second);
-            //将新的目录项写入磁盘
-            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
-            fileSystem->update();
-            std::swap(directory, tmpDir);
-            std::swap(nowDiretoryDisk, tmpDirDisk);
+            tmpDirDiskSrc = findRes.first;
+            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+            srcInodeIndex = tmpDirSrc.item[findRes.second].inodeIndex;
+//            //保存当前目录,设置当前目录为被移动的目录所在的目录
+//            std::swap(directory, tmpDir);
+//            std::swap(nowDiretoryDisk, tmpDirDisk);
+//            //更新被移动的目录所在的目录
+//            wholeDirItemsMove(findRes.second);
+//            //将新的目录项写入磁盘
+//            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+//            fileSystem->update();
+//            std::swap(directory, tmpDir);
+//            std::swap(nowDiretoryDisk, tmpDirDisk);
         }
             break;
     }
@@ -450,6 +450,18 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
         std::cout << "mv: " << RED << "failed" << RESET << ":des directory full" << std::endl;
         return;
     }
+
+    //保存当前目录,设置当前目录为被移动的文件所在的目录
+    std::swap(directory, tmpDirSrc);
+    std::swap(nowDiretoryDisk, tmpDirDiskSrc);
+    //更新被移动的文件所在的目录
+    wholeDirItemsMove(findRes.second);
+    //将新的目录项写入磁盘
+    fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
+    fileSystem->update();
+    std::swap(directory, tmpDirSrc);
+    std::swap(nowDiretoryDisk, tmpDirDiskSrc);
+
     strcpy(tmpDir.item[location].name, src.back().c_str());
     tmpDir.item[location].inodeIndex = srcInodeIndex;
     fileSystem->write(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
@@ -907,8 +919,8 @@ void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, u
     fileSystem->read(fileOpenTable[fileLocation].iNode.bno,0,reinterpret_cast<char*>(&fileIndex),sizeof (fileIndex));
     //获取当前光标位置
     uint32_t nowCursor=fileOpenTable[fileLocation].cursor;
-    //根据当前光标位置计算文件当前块
-    int totalBlockIndex=nowCursor/BLOCK_SIZE_BYTE;
+    //根据当前光标位置计算文件偏移了多少个索引表
+    int totalBlockIndex=nowCursor/(BLOCK_SIZE_BYTE*BLOCK_SIZE_BYTE);
     //下一个索引next数
     int nextNums=totalBlockIndex/BLOCK_SIZE_BYTE;
     //当前光标不在找到的文件索引表中,根据next找到当前光标所处的文件索引表
