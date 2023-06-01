@@ -363,7 +363,7 @@ void UserInterface::wholeDirItemsMove(int itemLocation) {
     }
 }
 
-void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::string> des) {
+void UserInterface::mv(std::vector<std::string> src, std::vector<std::string> des) {
     /*查找源文件或者目录的i结点*/
 
     //被移动的文件或者目录的i结点所在磁盘块号
@@ -371,56 +371,46 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
     Directory tmpDirSrc{};
     uint32_t tmpDirDiskSrc;
     int srcIndex;
-    switch (code) {
-        //移动文件
-        case 1: {
-            //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
-            auto findRes = findDisk(1, src);
-            if (findRes.first == -1) {
-                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
-                return;
-            }
-            tmpDirDiskSrc = findRes.first;
-            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
-            srcIndex = findRes.second;
-            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
-//            //保存当前目录,设置当前目录为被移动的文件所在的目录
-//            std::swap(directory, tmpDir);
-//            std::swap(nowDiretoryDisk, tmpDirDisk);
-//            //更新被移动的文件所在的目录
-//            wholeDirItemsMove(findRes.second);
-//            //将新的目录项写入磁盘
-//            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
-//            fileSystem->update();
-//            std::swap(directory, tmpDir);
-//            std::swap(nowDiretoryDisk, tmpDirDisk);
-        }
-            break;
-            //移动目录
-        case 2: {
-            //查找源目录所在的目录所在的磁盘块号以及对应目录项编号
-            auto findRes = findDisk(2, src);
-            if (findRes.first == -1) {
-                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
-                return;
-            }
-            tmpDirDiskSrc = findRes.first;
-            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
-            srcIndex = findRes.second;
-            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
-//            //保存当前目录,设置当前目录为被移动的目录所在的目录
-//            std::swap(directory, tmpDir);
-//            std::swap(nowDiretoryDisk, tmpDirDisk);
-//            //更新被移动的目录所在的目录
-//            wholeDirItemsMove(findRes.second);
-//            //将新的目录项写入磁盘
-//            fileSystem->write(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof(directory));
-//            fileSystem->update();
-//            std::swap(directory, tmpDir);
-//            std::swap(nowDiretoryDisk, tmpDirDisk);
-        }
-            break;
+    //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
+    auto findRes = findDisk(src);
+    if (findRes.first == -1) {
+        std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
+        return;
     }
+    tmpDirDiskSrc = findRes.first;
+    fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+    srcIndex = findRes.second;
+    srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
+//    switch (code) {
+//        //移动文件
+//        case 1: {
+//            //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
+//            auto findRes = findDisk(src);
+//            if (findRes.first == -1) {
+//                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
+//                return;
+//            }
+//            tmpDirDiskSrc = findRes.first;
+//            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+//            srcIndex = findRes.second;
+//            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
+//        }
+//            break;
+//            //移动目录
+//        case 2: {
+//            //查找源目录所在的目录所在的磁盘块号以及对应目录项编号
+//            auto findRes = findDisk(2, src);
+//            if (findRes.first == -1) {
+//                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
+//                return;
+//            }
+//            tmpDirDiskSrc = findRes.first;
+//            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
+//            srcIndex = findRes.second;
+//            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
+//        }
+//            break;
+//    }
     if (srcInodeIndex == 0) {
         std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
         return;
@@ -428,11 +418,11 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
 
     /*查找目的目录*/
     //查找目的目录所在的目录所在的磁盘块号以及对应目录项编号
-    auto findRes = findDisk(2, des);
+    auto findResDes = findDisk(des);
     Directory tmpDir{};
-    uint32_t tmpDirDisk = findRes.first;
+    uint32_t tmpDirDisk = findResDes.first;
     fileSystem->read(tmpDirDisk, 0, reinterpret_cast<char *>(&tmpDir), sizeof(tmpDir));
-    uint32_t desInodeIndex = tmpDir.item[findRes.second].inodeIndex;
+    uint32_t desInodeIndex = tmpDir.item[findResDes.second].inodeIndex;
     if (desInodeIndex == 0) {
         std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
         return;
@@ -471,11 +461,7 @@ void UserInterface::mv(int code, std::vector<std::string> src, std::vector<std::
     fileSystem->update();
 }
 
-std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::string> src) {
-    bool judgeFileDir;
-    if (code == 1) judgeFileDir = false;
-    else judgeFileDir = true;
-
+std::pair<uint32_t, int> UserInterface::findDisk(std::vector<std::string> src) {
     //获取名
     std::string srcName = src.back();
     src.pop_back();
@@ -512,16 +498,13 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     //找到对应i结点
     for (int i = 0; i < DIRECTORY_NUMS; i++) {
         if (directory.item[i].inodeIndex == 0) break;
-        if (strcmp(directory.item[i].name, srcName.c_str()) == 0 && (judge(directory.item[i].inodeIndex) ==
-                                                                     judgeFileDir)) {
+        if (strcmp(directory.item[i].name, srcName.c_str()) == 0) {
             location = i;
             break;
         }
     }
     if (location == -1) {
-        if (judgeFileDir)
-            std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory" << std::endl;
-        else std::cout << RED << "failed " << RESET << "'" << srcName << "' No such file" << std::endl;
+        std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory or file" << std::endl;
         //还原现场
         nowDiretoryDisk = tmpDirectoryDisk;
         fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
@@ -535,8 +518,8 @@ std::pair<uint32_t, int> UserInterface::findDisk(int code, std::vector<std::stri
     return ret;
 }
 
-void UserInterface::rename(int code, std::vector<std::string> src, std::string newName) {
-    auto findRes = findDisk(code, src);
+void UserInterface::rename(std::vector<std::string> src, std::string newName) {
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "rename: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
         return;
@@ -602,7 +585,7 @@ void UserInterface::chmod(std::string who, std::string how, std::vector<std::str
             if (hasX) rwxResult |= o_x;
         }
     }
-    auto findRes = findDisk(1, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "chmod: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
@@ -617,7 +600,7 @@ void UserInterface::chmod(std::string who, std::string how, std::vector<std::str
 }
 
 void UserInterface::cd(std::vector<std::string> src) {
-    auto findRes = findDisk(2, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "cd: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -633,7 +616,7 @@ void UserInterface::cd(std::vector<std::string> src) {
 }
 
 void UserInterface::mkdir(uint8_t uid, std::vector<std::string> src, std::string dirName) {
-    auto findRes = findDisk(2, std::move(src));
+    auto findRes = findDisk(std::move(src));
     if (findRes.first == -1) {
         std::cout << "mkdir: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -654,7 +637,7 @@ void UserInterface::mkdir(uint8_t uid, std::vector<std::string> src, std::string
 }
 
 void UserInterface::ls(std::vector<std::string> src) {
-    auto findRes = findDisk(2, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "ls: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -675,7 +658,7 @@ void UserInterface::ls(std::vector<std::string> src) {
 }
 
 void UserInterface::touch(uint8_t uid, std::vector<std::string> src, std::string fileName) {
-    auto findRes = findDisk(2, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "touch: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -696,7 +679,7 @@ void UserInterface::touch(uint8_t uid, std::vector<std::string> src, std::string
 }
 
 void UserInterface::rm(uint8_t uid, std::vector<std::string> src, std::string fileName) {
-    auto findRes = findDisk(2, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "rm: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -717,7 +700,7 @@ void UserInterface::rm(uint8_t uid, std::vector<std::string> src, std::string fi
 }
 
 void UserInterface::rmdir(uint8_t uid, std::vector<std::string> src, std::string dirName) {
-    auto findRes = findDisk(2, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "rmdir: " << RED << "failed" << RESET << ":no such directory" << std::endl;
         return;
@@ -802,7 +785,7 @@ void UserInterface::open(std::string how, std::vector<std::string> src) {
     uint8_t _w = 0x01;//w 000000 01
     if (hasR) rwResult |= _r;
     if (hasW) rwResult |= _w;
-    auto findRes = findDisk(1, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "open: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
@@ -842,7 +825,7 @@ void UserInterface::open(std::string how, std::vector<std::string> src) {
 }
 
 void UserInterface::close(std::vector<std::string> src) {
-    auto findRes = findDisk(1, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "close: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;
@@ -867,7 +850,7 @@ void UserInterface::close(std::vector<std::string> src) {
 }
 
 void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t offset) {
-    auto findRes = findDisk(1, src);
+    auto findRes = findDisk(src);
     if (findRes.first == -1) {
         std::cout << "setCursor: " << RED << "failed" << RESET << ":no such file" << std::endl;
         return;

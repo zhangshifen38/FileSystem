@@ -42,9 +42,8 @@ public:
     void rmdir(uint8_t uid, std::string dirName);//rmdir命令接口,删除文件夹
     void rmdir(uint8_t uid, std::vector<std::string> src, std::string dirName);//rmdir命令接口,根据src路径删除文件夹
 
-    void mv(int code, std::vector<std::string> src, std::vector<std::string> des);//mv命令接口,移动文件或者目录
-    // 数组存了被移动的文件或者目录的路径,code为方式码,1为文件,2为文件夹
-    void rename(int code, std::vector<std::string> src, std::string newName);//rename命令接口,将src路径指向的文件或者目录改名,code为方式码,1为文件,2为文件夹
+    void mv(std::vector<std::string> src, std::vector<std::string> des);//mv命令接口,移动文件或者目录
+    void rename(std::vector<std::string> src, std::string newName);//rename命令接口,将src路径指向的文件或者目录改名
     void format();//format命令接口,格式化整个文件系统,并把当前目录设置为根目录
     void chmod(std::string who, std::string how, std::vector<std::string> src);//chmod命令接口,对src指出的文件设置who(uoa)的how权限(rwx)
     //格式为chmod oau rwx src
@@ -76,7 +75,7 @@ private:
 
     //非接口函数设为私有，不让上层调用
     std::pair<uint32_t, int>
-    findDisk(int code, std::vector<std::string> src);//从当前目录开始,根据src数组提供的路径,找到对应文件或者目录所在的目录所在的磁盘块号和该文件或者目录的i结点所在的目录项序号
+    findDisk(std::vector<std::string> src);//从当前目录开始,根据src数组提供的路径,找到对应文件或者目录所在的目录所在的磁盘块号和该文件或者目录的i结点所在的目录项序号
     //第一个为对应文件或者目录所在的目录所在的磁盘块号;第二个为该文件或者目录的i结点所在的目录项序号;code为方式码,1为文件,2为目录
     uint32_t fileIndexBlockFree(uint32_t disk);//回收文件索引表中所有文件的块以及文件索引表本身的块,并返回还有没有下一个索引
     void wholeDirItemsMove(int itemLocation);//将从指定位置开始的目录项整体前移

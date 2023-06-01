@@ -285,7 +285,7 @@ void Shell::cmd_mv() {
         cout<<"mv: missing operand"<<endl;
         return;
     }
-    userInterface->mv(userInterface->judge(src),src,des);
+    userInterface->mv(src,des);
 }
 
 void Shell::cmd_rename() {
@@ -299,7 +299,7 @@ void Shell::cmd_rename() {
         cout<<"rename: missing operand"<<endl;
         return;
     }
-    userInterface->rename(userInterface->judge(src),src,cmd[2]);
+    userInterface->rename(src,cmd[2]);
 }
 
 void Shell::cmd_format() {
