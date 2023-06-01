@@ -896,6 +896,10 @@ void UserInterface::setCursor(int code, std::vector<std::string> src, uint32_t o
     }
 }
 
+void UserInterface::updateDirNow() {
+    fileSystem->read(nowDiretoryDisk,0,reinterpret_cast<char*>(&directory),sizeof (directory));
+}
+
 //void UserInterface::read(uint8_t uid, std::vector<std::string> src, char *buf, uint16_t sz) {
 //    auto findRes = findDisk(1, src);
 //    if (findRes.first == -1) {

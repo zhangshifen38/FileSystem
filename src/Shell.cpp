@@ -16,6 +16,7 @@ void Shell::running_shell() {
             std::getchar();
             nowPath.clear();
         }
+        userInterface->updateDirNow();
         outPutPrefix();
         std::getline(std::cin,input);
         cmd.clear();
