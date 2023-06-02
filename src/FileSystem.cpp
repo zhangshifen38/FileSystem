@@ -110,7 +110,9 @@ bool FileSystem::format(uint16_t bsize) {
     rootINode.flag = 0x7f;         //01111111，目录，所有用户都有rwx权限
     dir.item[0].inodeIndex = systemInfo.rootLocation;
     strcpy(dir.item[0].name, ".");       //当前目录指向自己，根目录没有上级目录
-    dir.item[1].inodeIndex = 0;
+    dir.item[1].inodeIndex = systemInfo.rootLocation;
+    strcpy(dir.item[1].name, "..");       //根目录没有上级目录，所以指向自己
+    dir.item[2].inodeIndex = 0;
     disk->seekStart(systemInfo.rootLocation * blockSize);
     disk->write(reinterpret_cast<char *>(&rootINode), sizeof(rootINode));
     disk->seekStart(rootINode.bno * blockSize);
