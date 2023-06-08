@@ -384,36 +384,6 @@ void UserInterface::mv(std::vector<std::string> src, std::vector<std::string> de
     fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
     srcIndex = findRes.second;
     srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
-//    switch (code) {
-//        //移动文件
-//        case 1: {
-//            //查找源文件所在的目录所在的磁盘块号以及对应目录项编号
-//            auto findRes = findDisk(src);
-//            if (findRes.first == -1) {
-//                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
-//                return;
-//            }
-//            tmpDirDiskSrc = findRes.first;
-//            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
-//            srcIndex = findRes.second;
-//            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
-//        }
-//            break;
-//            //移动目录
-//        case 2: {
-//            //查找源目录所在的目录所在的磁盘块号以及对应目录项编号
-//            auto findRes = findDisk(2, src);
-//            if (findRes.first == -1) {
-//                std::cout << "mv: " << RED << "failed" << RESET << ":cannot find des" << std::endl;
-//                return;
-//            }
-//            tmpDirDiskSrc = findRes.first;
-//            fileSystem->read(tmpDirDiskSrc, 0, reinterpret_cast<char *>(&tmpDirSrc), sizeof(tmpDirSrc));
-//            srcIndex = findRes.second;
-//            srcInodeIndex = tmpDirSrc.item[srcIndex].inodeIndex;
-//        }
-//            break;
-//    }
     if (srcInodeIndex == 0) {
         std::cout << "mv: " << RED << "failed" << RESET << ":cannot find src" << std::endl;
         return;
@@ -498,20 +468,25 @@ std::pair<uint32_t, int> UserInterface::findDisk(std::vector<std::string> src) {
         return std::make_pair(-1, -1);
     }
     int location = -1;
-    //找到对应i结点
-    for (int i = 0; i < DIRECTORY_NUMS; i++) {
-        if (directory.item[i].inodeIndex == 0) break;
-        if (strcmp(directory.item[i].name, srcName.c_str()) == 0) {
-            location = i;
-            break;
+    if(srcName!="") {
+        //找到对应i结点
+        for (int i = 0; i < DIRECTORY_NUMS; i++) {
+            if (directory.item[i].inodeIndex == 0) break;
+            if (strcmp(directory.item[i].name, srcName.c_str()) == 0) {
+                location = i;
+                break;
+            }
         }
-    }
-    if (location == -1) {
-        std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory or file" << std::endl;
-        //还原现场
-        nowDiretoryDisk = tmpDirectoryDisk;
-        fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
-        return std::make_pair(-1, -1);
+        if (location == -1) {
+            std::cout << RED << "failed " << RESET << "'" << srcName << "' No such directory or file" << std::endl;
+            //还原现场
+            nowDiretoryDisk = tmpDirectoryDisk;
+            fileSystem->read(nowDiretoryDisk, 0, reinterpret_cast<char *>(&directory), sizeof directory);
+            return std::make_pair(-1, -1);
+        }
+    }else{
+        goToRoot();
+        location = 0;
     }
     //记录下需要返回的数据
     std::pair<uint32_t, int> ret = std::make_pair(nowDiretoryDisk, location);
